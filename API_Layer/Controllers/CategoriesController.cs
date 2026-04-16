@@ -1,0 +1,148 @@
+﻿using BusinessLogicLayer.Interfaces;
+using Contracts.DTOs.CategoryDTOs;
+using Contracts.Enums;
+using Contracts.Exceptions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace API_Layer.Controllers
+{
+    [Route("api/CategoriesController")]
+    [ApiController]
+    public class CategoriesController : ControllerBase
+    {
+        private readonly ICategoryService _categoryService;
+
+        public CategoriesController(ICategoryService categoryService)
+        {
+            _categoryService = categoryService;
+        }
+
+        [HttpGet("{id}", Name = "GetCategoryByID")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadCategoryDTO))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetCategoryByIDAsync(int id)
+        {
+            if (id <= 0)
+                return BadRequest("Invalid ID");
+
+            try
+            {
+                var category = await _categoryService.GetCategoryByIDAsync(id);
+                return Ok(category);
+            }
+            catch (BusinessException ex)
+            {
+                return ex.ErrorType switch
+                {
+                    Enums.ActionResult.NotFound => NotFound(ex.Message),
+                    Enums.ActionResult.InvalidData => BadRequest(ex.Message),
+                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
+                };
+            }
+        }
+
+        [HttpGet("All Categories")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReadCategoryDTO>))]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAllCategoriesAsync()
+        {
+            try
+            {
+                var categories = await _categoryService.GetAllCategoriesAsync();
+                return Ok(categories);
+            }
+            catch (BusinessException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+        [HttpPost("Add New Category")]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateCategoryDTO))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AddNewCategoryAsync(CreateCategoryDTO category)
+        {
+            if (category == null || !category.IsValid())
+                return BadRequest("Invalid category data");
+
+            try
+            {
+                int? id = await _categoryService.AddNewCategoryAsync(category);
+                if (id == null)
+                    return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create category");
+
+                category.SetID(id.Value);
+                return CreatedAtRoute("GetCategoryByID", new { id = id.Value }, category);
+            }
+            catch (BusinessException ex)
+            {
+                return ex.ErrorType switch
+                {
+                    Enums.ActionResult.InvalidData => BadRequest(ex.Message),
+                    Enums.ActionResult.DBError => StatusCode(StatusCodes.Status500InternalServerError, ex.Message),
+                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
+                };
+            }
+        }
+
+        [HttpPut("Update/{id}", Name = "UpdateCategory")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateCategoryAsync(int id, UpdateCategoryDTO category)
+        {
+            if (id <= 0 || category == null)
+                return BadRequest("Invalid data");
+
+            try
+            {
+                bool updated = await _categoryService.UpdateCategoryAsync(id, category);
+                if (updated)
+                    return Ok("Category updated successfully");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to update category");
+            }
+            catch (BusinessException ex)
+            {
+                return ex.ErrorType switch
+                {
+                    Enums.ActionResult.NotFound => NotFound(ex.Message),
+                    Enums.ActionResult.InvalidData => BadRequest(ex.Message),
+                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
+                };
+            }
+        }
+
+        [HttpDelete("Delete/{id}", Name = "DeleteCategoryByID")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeleteCategoryByIDAsync(int id)
+        {
+            if (id <= 0)
+                return BadRequest("Invalid ID");
+
+            try
+            {
+                bool deleted = await _categoryService.DeleteCategoryByIDAsync(id);
+                if (deleted)
+                    return NoContent();
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to delete category");
+            }
+            catch (BusinessException ex)
+            {
+                return ex.ErrorType switch
+                {
+                    Enums.ActionResult.NotFound => NotFound(ex.Message),
+                    Enums.ActionResult.InvalidData => BadRequest(ex.Message),
+                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
+                };
+            }
+        }
+    }
+}
