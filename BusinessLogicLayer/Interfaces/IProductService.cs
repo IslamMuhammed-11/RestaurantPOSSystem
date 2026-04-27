@@ -10,10 +10,10 @@ namespace BusinessLogicLayer.Interfaces
 {
     public interface IProductService
     {
-        Task<int?> AddNewProductAsync(CreateProductDTO product);
-        Task<ReadProductDTO?> GetProductByIDAsync(int id);
-        Task<List<ReadProductDTO>> GetAllProductsAsync();
-        Task<bool> UpdateProductAsync(int ID, UpdateProductDTO product);
+        Task<int?> AddNewProductAsync(CreateProductRequest product);
+        Task<ProductResponse?> GetProductByIDAsync(int id);
+        Task<List<ProductResponse>> GetAllProductsAsync();
+        Task<bool> UpdateProductAsync(int ID, UpdateProductRequest product);
         Task<bool> DeleteProductByIDAsync(int id);
         Task<bool> DoesProductExistAsync(int id);
         Task<bool> IsProductAvailableAsync(int id);

@@ -6,35 +6,32 @@ using System.Text;
 using System.Threading.Tasks;
 using Contracts.DTOs.RolesDTOs;
 using Contracts.Enums;
+
 namespace BusinessLogicLayer.Mapping
 {
     public class RolesMap
     {
-
-        public static RoleEntity ToEntity(CreateRoleDTO role)
+        public static RoleEntity ToEntity(CreateRoleRequest role)
         {
             return new RoleEntity
             {
-                RoleName = role.RoleName,
-                Premission = role.Premission
+                RoleName = role.Name,
+                Premission = 0
             };
         }
 
-        public static void ToEntity(UpdateRoleDTO role , RoleEntity existingRole)
+        public static void ToEntity(UpdateRoleRequest role, RoleEntity existingRole)
         {
-            if (role.RoleName != null)
-                existingRole.RoleName = role.RoleName;
-            if(role.Premission != null)
-                existingRole.Premission = (short)role.Premission;
+            if (role.Name != null)
+                existingRole.RoleName = role.Name;
         }
 
-        public static ReadRoleDTO ToReadDTO(RoleEntity role)
+        public static RoleResponse ToReadDTO(RoleEntity role)
         {
-            return new ReadRoleDTO
+            return new RoleResponse
             {
                 RoleID = role.RoleID,
-                RoleName = role.RoleName,
-                Premission = role.Premission
+                Name = role.RoleName
             };
         }
     }

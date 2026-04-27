@@ -1,14 +1,15 @@
 ﻿using Contracts.DTOs.OrderDTOs;
 using DataAccessLayer.Entites;
 using System.Data;
+using System.Runtime.CompilerServices;
 
 namespace BusinessLogicLayer.Mapping
 {
     public class OrderMap
     {
-        public static OrderDTO ToOrderDTO(OrderEntity order)
+        public static OrderResponse ToOrderResponse(OrderEntity order)
         {
-            return new OrderDTO
+            return new OrderResponse
             {
                 OrderID = order.OrderID,
                 CustomerID = order.CustomerID,
@@ -23,12 +24,12 @@ namespace BusinessLogicLayer.Mapping
             };
         }
 
-        public static List<OrderDTO> ToOrderDTOList(List<OrderEntity> orders)
+        public static List<OrderResponse> ToOrderResponseList(List<OrderEntity> orders)
         {
-            return orders.Select(ToOrderDTO).ToList();
+            return orders.Select(ToOrderResponse).ToList();
         }
 
-        public static OrderEntity ToOrderEntity(CreateOrderDTO order)
+        public static OrderEntity ToOrderEntity(CreateOrderRequest order)
         {
             return new OrderEntity
             {
@@ -36,7 +37,6 @@ namespace BusinessLogicLayer.Mapping
                 TableID = order.TableID,
                 StatusName = string.Empty,
                 OrderTypeName = string.Empty,
-                CreatedByUserID = order.CreatedByUserID,
                 OrderStatus = OrderEntity.enOrderStatus.Pending, // Default status for new orders
                 OrderType = (OrderEntity.enOrderType)order.OrderType, // Map the order type from DTO to entity
                 Username = string.Empty,
@@ -46,7 +46,7 @@ namespace BusinessLogicLayer.Mapping
             };
         }
 
-        public static void UpdateOrderEntity(OrderEntity existingOrder, UpdateOrderDTO updatedOrder)
+        public static void UpdateOrderEntity(OrderEntity existingOrder, UpdateOrderRequest updatedOrder)
         {
             existingOrder.TableID = updatedOrder.TableID ?? existingOrder.TableID;
             existingOrder.OrderStatus = updatedOrder.OrderStatus.HasValue ? (OrderEntity.enOrderStatus)updatedOrder.OrderStatus.Value : existingOrder.OrderStatus;
@@ -80,6 +80,24 @@ namespace BusinessLogicLayer.Mapping
             }
 
             return table;
+        }
+
+        //public static OrderAndItemsEntity ToOrderAndItemsEntity(OrderAndItemsDTO dto)
+        //{
+        //    return new OrderAndItemsEntity
+        //    {
+        //        Order = ToOrderEntity(dto.Order),
+        //        Items = dto.items
+        //    };
+        //}
+
+        public static OrderWithItemsResponse ToOrderAndItemsDTO(OrderAndItemsEntity orderAndItemsDTO)
+        {
+            return new OrderWithItemsResponse
+            {
+                Order = ToOrderResponse(orderAndItemsDTO.Order),
+                Items = orderAndItemsDTO.Items.Select(Mapping.ItemMap.ToReadDTO).ToList()
+            };
         }
     }
 }

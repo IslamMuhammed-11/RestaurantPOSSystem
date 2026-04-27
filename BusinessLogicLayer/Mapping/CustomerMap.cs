@@ -9,9 +9,9 @@ namespace BusinessLogicLayer.Mapping
 {
     public class CustomerMap
     {
-        public static ReadCustomerDTO ToReadDTO(CustomerEntity entity)
+        public static CustomerResponse ToReadDTO(CustomerEntity entity)
         {
-            return new ReadCustomerDTO
+            return new CustomerResponse
             {
                 CustomerID = entity.CustomerID,
                 Name = entity.Name,
@@ -19,7 +19,7 @@ namespace BusinessLogicLayer.Mapping
             };
         }
 
-        public static CustomerEntity ToEntity(CreateCustomerDTO dto)
+        public static CustomerEntity ToEntity(CreateCustomerRequest dto)
         {
             return new CustomerEntity
             {
@@ -28,7 +28,7 @@ namespace BusinessLogicLayer.Mapping
             };
         }
 
-        public static bool ToEntity(UpdateCustomerDTO dto, CustomerEntity customer)
+        public static bool ToEntity(UpdateCustomerRequest dto, CustomerEntity customer)
         {
             if (dto == null)
                 return false;
@@ -39,10 +39,10 @@ namespace BusinessLogicLayer.Mapping
             return true;
         }
 
-        public static List<ReadCustomerDTO> ToReadDTOList(List<CustomerEntity> entities)
+        public static List<CustomerResponse> ToReadDTOList(List<CustomerEntity> entities)
         {
             if (entities == null || entities.Count == 0)
-                return new List<ReadCustomerDTO>();
+                return new List<CustomerResponse>();
             return entities.Select(e => ToReadDTO(e)).ToList();
         }
 

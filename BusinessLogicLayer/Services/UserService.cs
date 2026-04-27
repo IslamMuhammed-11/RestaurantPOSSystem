@@ -17,13 +17,13 @@ namespace BusinessLogicLayer.Services
             _personRepo = Person;
         }
 
-        public async Task<int?> AddNewUserAsync(CreateUserDTO user)
+        public async Task<int?> AddNewUserAsync(CreateUserRequest user)
         {
             //Validating the user data
             if (!user.IsValid())
                 return null;
 
-            var PersonEntity = PersonMap.ToEntity(user.createPersonDTO);
+            var PersonEntity = PersonMap.ToEntity(user.PersonData);
 
             int? PersonID = await _personRepo.AddNewPersonAsync(PersonEntity);
 
@@ -32,20 +32,22 @@ namespace BusinessLogicLayer.Services
             else
                 user.PersonID = PersonID.Value;
 
+            user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+
             //Mapping the DTO to an Entity
             var userEntity = UserMap.ToEntity(user);
 
             return await _userRepo.AddNewUserAsync(userEntity);
         }
 
-        public async Task<List<ReadUserDTO>> GetAllUsersAsync()
+        public async Task<List<UserResponse>> GetAllUsersAsync()
         {
             var userEntities = await _userRepo.GetAllUserAsync();
 
             return UserMap.ToReadDTOList(userEntities);
         }
 
-        public async Task<ReadUserDTO?> GetUserByIDAsync(int ID)
+        public async Task<UserResponse?> GetUserByIDAsync(int ID)
         {
             var userEntity = await _userRepo.GetUserByIDAsync(ID);
 
@@ -55,7 +57,20 @@ namespace BusinessLogicLayer.Services
             return UserMap.ToReadDTO(userEntity);
         }
 
-        public async Task<Enums.ActionResult> UpdateUserAsync(int id, UpdateUserDTO user)
+        public async Task<UserTokenData?> GetUserByUsernameAsync(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return null;
+
+            var userEntity = await _userRepo.GetUserByUsernameAsync(username);
+
+            if (userEntity is null)
+                return null;
+
+            return UserMap.ToReadDTOWithPasswordHash(userEntity);
+        }
+
+        public async Task<Enums.ActionResult> UpdateUserAsync(int id, UpdateUserRequest user)
         {
             if (id <= 0)
                 return Enums.ActionResult.InvalidData;
@@ -64,6 +79,10 @@ namespace BusinessLogicLayer.Services
 
             if (existingUser is null)
                 return Enums.ActionResult.NotFound;
+
+            //Checking if the Password is Changed
+            if (!string.IsNullOrEmpty(user.Password) && !BCrypt.Net.BCrypt.Verify(user.Password, existingUser.PasswordHash))
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
             if (!UserMap.ToEntity(user, existingUser))
                 return Enums.ActionResult.Error;
@@ -138,15 +157,16 @@ namespace BusinessLogicLayer.Services
 
             if (!existingUser.IsActive)
                 return Enums.ActionResult.InActiveUser;
-            //Should be hashed and salted in a real application, this is just for demonstration purposes
-            if (existingUser.PasswordHash != Passoword)
+
+            if (!BCrypt.Net.BCrypt.Verify(Passoword, existingUser.PasswordHash))
                 return Enums.ActionResult.InvalidPassword;
 
             if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
                 return Enums.ActionResult.WeakPassword;
 
-            //Should be hashed and salted in a real application, this is just for demonstration purposes
-            if (!await _userRepo.UpdatePasswordAsync(id, newPassword))
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+            if (!await _userRepo.UpdatePasswordAsync(id, hashedPassword))
                 return Enums.ActionResult.DBError;
 
             return Enums.ActionResult.Success;
@@ -155,6 +175,18 @@ namespace BusinessLogicLayer.Services
         public async Task<bool> IsUserValid(int UserId)
         {
             return await _userRepo.DoesUserExistAsync(UserId);
+        }
+
+        public async Task<bool> SaveRefreshTokenAsync(UserTokenData user)
+        {
+            var entity = UserMap.ToEntity(user);
+
+            return await _userRepo.SaveRefreshTokenAsync(entity);
+        }
+
+        public async Task<bool> RevokeToken(int userId)
+        {
+            return await _userRepo.RevokeToken(userId);
         }
     }
 }

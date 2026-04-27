@@ -2,11 +2,13 @@
 using Contracts.DTOs.ProductDTOs;
 using Contracts.Enums;
 using Contracts.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API_Layer.Controllers
 {
+    [Authorize]
     [Route("api/ProductsController")]
     [ApiController]
     public class ProductsController : ControllerBase
@@ -19,10 +21,11 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("{id}", Name = "GetProductByID")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadProductDTO))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ProductResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetProductByIDAsync(int id)
         {
             if (id <= 0)
@@ -47,6 +50,7 @@ namespace API_Layer.Controllers
         [HttpGet("All Products")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllProductsAsync()
         {
             try
@@ -61,11 +65,13 @@ namespace API_Layer.Controllers
         }
 
         [HttpPost("Add New Product")]
-        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateProductDTO))]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateProductRequest))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> AddNewProductAsync(CreateProductDTO product)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> AddNewProductAsync(CreateProductRequest product)
         {
             if (product == null || !product.IsValid())
                 return BadRequest("Invalid product data");
@@ -92,11 +98,13 @@ namespace API_Layer.Controllers
         }
 
         [HttpPut("Update/{id}", Name = "UpdateProduct")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateProductAsync(int id, UpdateProductDTO product)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UpdateProductAsync(int id, UpdateProductRequest product)
         {
             if (id <= 0 || product == null)
                 return BadRequest("Invalid data");
@@ -120,10 +128,12 @@ namespace API_Layer.Controllers
         }
 
         [HttpDelete("Delete/{id}", Name = "DeleteProductByID")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteProductByIDAsync(int id)
         {
             if (id <= 0)

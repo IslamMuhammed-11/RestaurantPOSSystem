@@ -15,15 +15,16 @@ namespace BusinessLogicLayer.Services
         private readonly IUserService _userService;
         private readonly IProductService _productService;
 
-        public OrderService(IOrderRepo orderRepo, IUserService userService , IProductService productService)
+        public OrderService(IOrderRepo orderRepo, IUserService userService, IProductService productService)
         {
             _orderRepo = orderRepo;
             _userService = userService;
             _productService = productService;
         }
 
+        public OrderEntity.enOrderStatus enStatus;
 
-        public async Task<int?> CreateOrderAsync(CreateOrderDTO order)
+        public async Task<int?> CreateOrderAsync(CreateOrderRequest order, int createByUserId)
         {
             if (order == null)
                 throw new ArgumentNullException(nameof(order));
@@ -36,7 +37,7 @@ namespace BusinessLogicLayer.Services
             bool isDuplicated = (order.Items.Count != order.Items.Select(x => x.ProductID).Distinct().Count());
 
             // Ensure all items are valid and there are no duplicate ProductIDs
-            if (order.Items.All(item => !item.isValid())
+            if (order.Items.All(item => !item.IsValid())
                 || isDuplicated)
                 throw new ArgumentException("Duplicates or Invalid Items");
 
@@ -56,7 +57,7 @@ namespace BusinessLogicLayer.Services
             if (order.TableID.HasValue && order.OrderType != (int)OrderEntity.enOrderType.DineIn)
                 throw new BusinessException("TableID should be null for non-DineIn orders.", 50011, Enums.ActionResult.InvalidData);
 
-            bool IsUserValid = await _userService.IsUserValid(order.CreatedByUserID);
+            bool IsUserValid = await _userService.IsUserValid(createByUserId);
             // Ensure UserID is valid and active
             if (!IsUserValid)
                 throw new BusinessException("Invalid UserID Does not Exist Or Inactive", 50010, Enums.ActionResult.InvalidData);
@@ -64,33 +65,43 @@ namespace BusinessLogicLayer.Services
             // Map CreateOrderDTO to OrderEntity
             var NewOrder = Mapping.OrderMap.ToOrderEntity(order);
 
-            // Convert List<AddItemDTO> to DataTable for bulk insert
-            var orderItemsTable = OrderMap.ConvertToDataTable<AddItemDTO>(order.Items);
+            NewOrder.CreatedByUserID = createByUserId;
+
+            // Convert List<CreateOrderItemRequest> to DataTable for bulk insert
+            var orderItemsTable = OrderMap.ConvertToDataTable<CreateOrderItemRequest>(order.Items);
 
             // Call repository to create order and return the new OrderID
             return await _orderRepo.CreateOrderAsync(NewOrder, orderItemsTable);
         }
 
-        public async Task<OrderDTO> GetOrderByIdAsync(int orderId)
+        public async Task<OrderWithItemsResponse> GetOrderAndItemsByIdAsync(int orderId)
         {
-
             // Incase of Error it Throws BusinessException With DBError And SqlException message
-            var orderEntity = await _orderRepo.GetOrderByIDAsync(orderId);
+            var orderAndItemsEntity = await _orderRepo.GetOrderAndItemsByOrderIDAsync(orderId);
+
+            if (orderAndItemsEntity == null)
+                throw new BusinessException($"Order With This ID Was not found {orderId}", 90005, Enums.ActionResult.NotFound);
+
+            return Mapping.OrderMap.ToOrderAndItemsDTO(orderAndItemsEntity);
+        }
+
+        public async Task<OrderResponse> GetOrderByIdAsync(int id)
+        {
+            var orderEntity = await _orderRepo.GetOrderByIDAsync(id);
 
             if (orderEntity == null)
-                throw new BusinessException("Order Not Found", 50012, Enums.ActionResult.NotFound);
+                throw new BusinessException($"Order with this Id was not found {id}", 90005, Enums.ActionResult.NotFound);
 
-            return Mapping.OrderMap.ToOrderDTO(orderEntity);
+            return OrderMap.ToOrderResponse(orderEntity);
         }
 
-        public async Task<List<OrderDTO>> GetAllOrdersAsync()
+        public async Task<List<OrderResponse>> GetAllOrdersAsync()
         {
-
             var orderEntities = await _orderRepo.GetAllOrdersAsync();
-            return orderEntities.Select(oe => Mapping.OrderMap.ToOrderDTO(oe)).ToList();
+            return orderEntities.Select(oe => Mapping.OrderMap.ToOrderResponse(oe)).ToList();
         }
 
-        public async Task<bool> UpdateOrderAsync(int orderId, UpdateOrderDTO order)
+        public async Task<bool> UpdateOrderAsync(int orderId, UpdateOrderRequest order)
         {
             throw new NotImplementedException();
         }
@@ -136,6 +147,9 @@ namespace BusinessLogicLayer.Services
 
             if (orderEntity.TableID == TableID)
                 throw new BusinessException("Cannot Change To The Same Table", 50019, Enums.ActionResult.InvalidData);
+
+            if (orderEntity.OrderStatus == OrderEntity.enOrderStatus.Cancelled || orderEntity.OrderStatus == OrderEntity.enOrderStatus.Completed)
+                throw new BusinessException("Order is cancelled or completed", 50020, Enums.ActionResult.Conflict);
 
             return await _orderRepo.ChangeTable(Id, TableID);
         }

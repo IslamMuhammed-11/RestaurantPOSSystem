@@ -9,10 +9,14 @@ namespace BusinessLogicLayer.Interfaces
 {
     public interface IPersonService
     {
-        Task<int?> AddNewPersonAsync(CreatePersonDTO person);
-        Task<bool> UpdatePersonAsync(UpdatePersonDTO person);
-        Task<PersonResponseDTO?> GetPersonByIDAsync(int id);
-        Task<List<PersonResponseDTO>> GetAllPeopleAsync();
+        Task<int?> AddNewPersonAsync(CreatePersonRequest person);
+
+        Task<bool> UpdatePersonAsync(int id, UpdatePersonRequest person);
+
+        Task<PersonResponse?> GetPersonByIDAsync(int id);
+
+        Task<List<PersonResponse>> GetAllPeopleAsync();
+
         Task<bool> DeletePersonByIDAsync(int id);
     }
 }

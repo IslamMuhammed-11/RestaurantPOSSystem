@@ -10,16 +10,16 @@ namespace BusinessLogicLayer.Mapping
 {
     public class CategoryMap
     {
-        public static ReadCategoryDTO ToReadDTO(CategoryEntity entity)
+        public static CategoryResponse ToReadDTO(CategoryEntity entity)
         {
-            return new ReadCategoryDTO
+            return new CategoryResponse
             {
                 CategoryID = entity.CategoryID,
                 Name = entity.Name
             };
         }
 
-        public static CategoryEntity ToEntity(CreateCategoryDTO dto)
+        public static CategoryEntity ToEntity(CreateCategoryRequest dto)
         {
             return new CategoryEntity
             {
@@ -27,7 +27,7 @@ namespace BusinessLogicLayer.Mapping
             };
         }
 
-        public static bool ToEntity(UpdateCategoryDTO dto, CategoryEntity category)
+        public static bool ToEntity(UpdateCategoryRequest dto, CategoryEntity category)
         {
             if (dto == null)
                 return false;
@@ -36,10 +36,10 @@ namespace BusinessLogicLayer.Mapping
             return true;
         }
 
-        public static List<ReadCategoryDTO> ToReadDTOList(List<CategoryEntity> entities)
+        public static List<CategoryResponse> ToReadDTOList(List<CategoryEntity> entities)
         {
             if (entities == null || entities.Count == 0)
-                return new List<ReadCategoryDTO>();
+                return new List<CategoryResponse>();
             return entities.Select(e => ToReadDTO(e)).ToList();
         }
     }

@@ -3,11 +3,14 @@ using Contracts.DTOs.OrderDTOs;
 using Contracts.DTOs.OrderItemsDTOs;
 using Contracts.Enums;
 using Contracts.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace API_Layer.Controllers
 {
+    [Authorize]
     [Route("api/OrdersController")]
     [ApiController]
     public class OrdersController : ControllerBase
@@ -15,20 +18,21 @@ namespace API_Layer.Controllers
         private readonly IOrderService _orderService;
         private readonly IItemService _itemService;
 
-        public OrdersController(IOrderService orderService , IItemService itemService)
+        public OrdersController(IOrderService orderService, IItemService itemService)
         {
             _orderService = orderService;
             _itemService = itemService;
         }
 
-        [HttpPost("Order/CreateNew")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [HttpPost("order/create")]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateOrder(Contracts.DTOs.OrderDTOs.CreateOrderDTO order)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> CreateOrder(Contracts.DTOs.OrderDTOs.CreateOrderRequest order)
         {
             if (order == null || !order.IsValid())
                 return BadRequest("Null Was Sent");
@@ -36,7 +40,14 @@ namespace API_Layer.Controllers
 
             try
             {
-                newOrderId = await _orderService.CreateOrderAsync(order);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (userId == null)
+                    return Unauthorized("Invalid Token");
+
+                int createdByUserId = int.Parse(userId);
+
+                newOrderId = await _orderService.CreateOrderAsync(order, createdByUserId);
             }
             catch (Exception ex)
             {
@@ -63,7 +74,7 @@ namespace API_Layer.Controllers
 
             var ReadyOrder = await _orderService.GetOrderByIdAsync(newOrderId.Value);
 
-            var Response = new CreateOrderResponseDTO
+            var Response = new OrderCreatedResponse
             {
                 OrderID = ReadyOrder.OrderID,
                 StatusName = ReadyOrder.OrderStatusName,
@@ -71,14 +82,15 @@ namespace API_Layer.Controllers
                 TotalPrice = ReadyOrder.TotalPrice,
                 CreatedAt = ReadyOrder.CreatedAt
             };
-
             return CreatedAtRoute("GetOrderById", new { id = newOrderId.Value }, Response);
         }
 
-
-        [HttpGet("Order/GetAll")]
+        //Ownership policy will be applied here for waiter
+        [HttpGet("order/all")]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllOrders()
         {
             try
@@ -88,38 +100,35 @@ namespace API_Layer.Controllers
             }
             catch (BusinessException ex)
             {
-
                 return StatusCode(500, ex.Message);
             }
-
         }
 
-        [HttpGet("Order/{id}", Name = "GetOrderById")]
+        //Ownership policy will be applied here for waiter
+        [HttpGet("order/{id}", Name = "GetOrderById")]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetOrderById(int id)
         {
-
             try
             {
                 // Incase of Exceptions It Throws Not Found And DB Error Business Exceptions
-                var order = await _orderService.GetOrderByIdAsync(id);
+                var order = await _orderService.GetOrderAndItemsByIdAsync(id);
 
                 return Ok(order);
             }
             catch (BusinessException ex)
             {
-
                 return ex.ErrorType switch
                 {
                     Enums.ActionResult.NotFound => NotFound(ex.Message),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
                 };
             }
-
         }
-
 
         //[HttpPut]
         //public async Task<IActionResult> UpdateOrder(int id, Contracts.DTOs.OrderDTOs.UpdateOrderDTO order)
@@ -152,8 +161,6 @@ namespace API_Layer.Controllers
         //    }
         //}
 
-
-
         private async Task<IActionResult> ChangeStatus(int id, IOrderService.enOrderStatus orderStatus)
         {
             try
@@ -178,40 +185,49 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPut("Order/{id}/preparing")]
+        [HttpPut("order/{id}/preparing")]
+        [Authorize(Roles = "Admin,SuperAdmin,Kitchen")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> MarkAsPreparing(int id)
         {
             return await ChangeStatus(id, IOrderService.enOrderStatus.Preparing);
         }
-        [HttpPut("Order/{id}/ready")]
+
+        [HttpPut("order/{id}/ready")]
+        [Authorize(Roles = "Admin,SuperAdmin,Kitchen")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> MarkAsReady(int id)
         {
             return await ChangeStatus(id, IOrderService.enOrderStatus.Ready);
         }
 
-        [HttpPut("Order/{id}/cancelled")]
+        [HttpPut("order/{id}/cancelled")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> MarkAsCancelled(int id)
         {
             return await ChangeStatus(id, IOrderService.enOrderStatus.Cancelled);
         }
 
-        [HttpPut("Order/{id}/ChangeTable/{TableID}")]
+        [HttpPut("order/{id}/ChangeTable/{TableID}")]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> ChangeTable(int id, int TableID)
         {
             try
@@ -236,16 +252,16 @@ namespace API_Layer.Controllers
             }
         }
 
-
         [HttpPost("order/{Id}/Item")]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AddNewItem(int Id , AddItemDTO item) 
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> AddNewItem(int Id, CreateOrderItemRequest item)
         {
-
             try
             {
                 int? newItemID = await _itemService.AddNewItemAsync(item, Id);
@@ -261,22 +277,21 @@ namespace API_Layer.Controllers
                 {
                     Enums.ActionResult.InvalidData => BadRequest(ex.Message),
                     Enums.ActionResult.NotFound => NotFound(ex.Message),
-                    Enums.ActionResult.Conflict => StatusCode(409 , ex.Message),
+                    Enums.ActionResult.Conflict => StatusCode(409, ex.Message),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
                 };
-
             }
-
-
         }
 
         [HttpPut("order/{orderId}/Item{ItemId}")]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> ChangeItemQuantity(int orderId , int ItemId , UpdateQuantityDTO quantity)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> ChangeItemQuantity(int orderId, int ItemId, UpdateOrderItemQuantityRequest quantity)
         {
             try
             {
@@ -285,15 +300,12 @@ namespace API_Layer.Controllers
                 if (!isChanged)
                     return StatusCode(500, "Unexpected error occured");
 
-
                 var order = await _orderService.GetOrderByIdAsync(orderId);
 
                 return Ok(order);
-                
             }
             catch (BusinessException ex)
             {
-
                 return ex.ErrorType switch
                 {
                     Enums.ActionResult.InvalidData => BadRequest(ex.Message),
@@ -304,14 +316,15 @@ namespace API_Layer.Controllers
             }
         }
 
-
         [HttpDelete("order/{orderId}/Item{itemId}")]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteItem(int orderId , int itemId)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> DeleteItem(int orderId, int itemId)
         {
             try
             {
@@ -324,8 +337,7 @@ namespace API_Layer.Controllers
             }
             catch (BusinessException ex)
             {
-
-                   return ex.ErrorType switch
+                return ex.ErrorType switch
                 {
                     Enums.ActionResult.InvalidData => BadRequest(ex.Message),
                     Enums.ActionResult.NotFound => NotFound(ex.Message),

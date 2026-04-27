@@ -10,6 +10,7 @@ namespace DataAccessLayer.Entites
     {
         public int ItemID { get; set; }
         public int ProductID { get; set; }
+        public string ProductName { get; set; }
         public int OrderID { get; set; }
         public short Quantity { get; set; }
         public decimal Price { get; set; }

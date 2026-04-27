@@ -11,10 +11,14 @@ namespace BusinessLogicLayer.Interfaces
 {
     public interface IRolesService
     {
-        Task<int?> AddNewRoleAsync(CreateRoleDTO role);
-        Task<Enums.ActionResult> UpdateRoleAsync(int ID, UpdateRoleDTO role);
-        Task<ReadRoleDTO?> GetRoleByIDAsync(int id);
-        Task<List<ReadRoleDTO>> GetAllRolesAsync();
+        Task<int?> AddNewRoleAsync(CreateRoleRequest role);
+
+        Task<Enums.ActionResult> UpdateRoleAsync(int ID, UpdateRoleRequest role);
+
+        Task<RoleResponse?> GetRoleByIDAsync(int id);
+
+        Task<List<RoleResponse>> GetAllRolesAsync();
+
         Task<Enums.ActionResult> DeleteRoleByIDAsync(int id);
     }
 }

@@ -42,9 +42,10 @@ namespace DataAccessLayer.Repos
                     {
                         ItemID = (int)reader["ItemID"],
                         ProductID = (int)reader["ProductID"],
+                        ProductName = (string)reader["ProductName"],
                         OrderID = (int)reader["OrderID"],
                         Quantity = reader["Quantity"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Quantity"]),
-                        Price = Convert.ToDecimal(reader["Price"])
+                        Price = Convert.ToDecimal(reader["UnitPrice"])
                     };
                 }
             }
@@ -54,6 +55,43 @@ namespace DataAccessLayer.Repos
             }
 
             return null!;
+        }
+
+        public async Task<List<ItemsEntity>> GetAllItemsByOrderId(int orderId)
+        {
+            List<ItemsEntity> items = new List<ItemsEntity>();
+
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetAllItemsByOrderId", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@OrderID", orderId);
+
+            try
+            {
+                await connection.OpenAsync();
+
+                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    items.Add( new ItemsEntity
+                    {
+                        ItemID = (int)reader["ItemID"],
+                        ProductID = (int)reader["ProductID"],
+                        ProductName = (string)reader["ProductName"],
+                        OrderID = (int)reader["OrderID"],
+                        Quantity = reader["Quantity"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Quantity"]),
+                        Price = Convert.ToDecimal(reader["UnitPrice"])
+                    });
+                }
+            }
+            catch (SqlException ex)
+            {
+                throw new BusinessException(ex.Message, 99999, Contracts.Enums.Enums.ActionResult.DBError);
+            }
+
+            return items;
         }
 
         public async Task<int?> AddNewItemAsync(ItemsEntity item)

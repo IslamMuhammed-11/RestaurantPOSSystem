@@ -20,9 +20,9 @@ namespace BusinessLogicLayer.Services
             _roleRepo = roleRepo;
         }
 
-        public async Task<int?> AddNewRoleAsync(CreateRoleDTO role)
+        public async Task<int?> AddNewRoleAsync(CreateRoleRequest role)
         {
-            if (role == null || !role.isValid())
+            if (role == null || !role.IsValid())
                 return null;
 
             var roleEntity = RolesMap.ToEntity(role);
@@ -30,10 +30,9 @@ namespace BusinessLogicLayer.Services
             int? ID = await _roleRepo.AddNewRoleAsync(roleEntity);
 
             return ID;
-
         }
 
-        public async Task<ReadRoleDTO?> GetRoleByIDAsync(int id)
+        public async Task<RoleResponse?> GetRoleByIDAsync(int id)
         {
             if (id < 0)
                 return null;
@@ -43,7 +42,7 @@ namespace BusinessLogicLayer.Services
             return RolesMap.ToReadDTO(roleEntity);
         }
 
-        public async Task<Enums.ActionResult> UpdateRoleAsync(int id, UpdateRoleDTO role)
+        public async Task<Enums.ActionResult> UpdateRoleAsync(int id, UpdateRoleRequest role)
         {
             if (role == null || id < 0)
                 return Enums.ActionResult.InvalidData;
@@ -58,18 +57,12 @@ namespace BusinessLogicLayer.Services
                 return Enums.ActionResult.Error;
 
             return Enums.ActionResult.Success;
-
         }
 
-        public async Task<List<ReadRoleDTO>> GetAllRolesAsync()
+        public async Task<List<RoleResponse>> GetAllRolesAsync()
         {
             var roles = await _roleRepo.GetAllRoleAsync();
-            return roles.Select(r => new ReadRoleDTO
-            {
-                RoleID = r.RoleID,
-                RoleName = r.RoleName,
-                Premission = r.Premission
-            }).ToList();
+            return roles.Select(RolesMap.ToReadDTO).ToList();
         }
 
         public async Task<Enums.ActionResult> DeleteRoleByIDAsync(int id)
@@ -86,6 +79,5 @@ namespace BusinessLogicLayer.Services
 
             return Enums.ActionResult.Success;
         }
-
     }
 }

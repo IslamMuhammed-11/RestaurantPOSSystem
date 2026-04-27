@@ -10,10 +10,10 @@ namespace BusinessLogicLayer.Interfaces
 {
     public interface ICategoryService
     {
-        Task<int?> AddNewCategoryAsync(CreateCategoryDTO category);
-        Task<bool> UpdateCategoryAsync(int ID, UpdateCategoryDTO category);
-        Task<ReadCategoryDTO?> GetCategoryByIDAsync(int id);
-        Task<List<ReadCategoryDTO>> GetAllCategoriesAsync();
+        Task<int?> AddNewCategoryAsync(CreateCategoryRequest category);
+        Task<bool> UpdateCategoryAsync(int ID, UpdateCategoryRequest category);
+        Task<CategoryResponse?> GetCategoryByIDAsync(int id);
+        Task<List<CategoryResponse>> GetAllCategoriesAsync();
         Task<bool> DeleteCategoryByIDAsync(int id);
         Task<bool> DoesCategoryExistsAsync(int id);
     }

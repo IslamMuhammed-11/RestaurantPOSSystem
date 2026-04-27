@@ -10,40 +10,38 @@ namespace BusinessLogicLayer.Mapping
 {
     public class TableMap
     {
-        public static ReadTableDTO ToReadDTO(TableEntity entity)
+        public static TableResponse ToReadDTO(TableEntity entity)
         {
-            return new ReadTableDTO
+            return new TableResponse
             {
                 TableID = entity.TableID,
-                TableStatus = entity.TableStatus,
-                NumberOfSeats = entity.NumberOfSeats
+                // Name = $"Table {entity.TableID}",
+                Seats = entity.NumberOfSeats
             };
         }
 
-        public static TableEntity ToEntity(CreateTableDTO dto)
+        public static TableEntity ToEntity(CreateTableRequest dto)
         {
             return new TableEntity
             {
-                NumberOfSeats = dto.NumberOfSeats,
+                NumberOfSeats = (short)dto.Seats,
                 TableStatus = 0
             };
         }
 
-        public static bool ToEntity(UpdateTableDTO dto, TableEntity table)
+        public static bool ToEntity(UpdateTableRequest dto, TableEntity table)
         {
             if (dto == null)
                 return false;
-            if (dto.TableStatus != null)
-                table.TableStatus = dto.TableStatus.Value;
-            if (dto.NumberOfSeats != null)
-                table.NumberOfSeats = dto.NumberOfSeats.Value;
+            if (dto.Seats != null)
+                table.NumberOfSeats = (short)dto.Seats.Value;
             return true;
         }
 
-        public static List<ReadTableDTO> ToReadDTOList(List<TableEntity> entities)
+        public static List<TableResponse> ToReadDTOList(List<TableEntity> entities)
         {
             if (entities == null || entities.Count == 0)
-                return new List<ReadTableDTO>();
+                return new List<TableResponse>();
             return entities.Select(e => ToReadDTO(e)).ToList();
         }
     }

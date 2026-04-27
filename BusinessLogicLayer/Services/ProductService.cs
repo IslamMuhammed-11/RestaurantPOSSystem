@@ -10,19 +10,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data;
+
 namespace BusinessLogicLayer.Services
 {
     public class ProductService : IProductService
     {
         private readonly IProductRepo _productRepo;
         private readonly ICategoryService _categoryService;
+
         public ProductService(IProductRepo productRepo, ICategoryService categoryService)
         {
             _productRepo = productRepo;
             _categoryService = categoryService;
         }
 
-        public async Task<int?> AddNewProductAsync(CreateProductDTO product)
+        public async Task<int?> AddNewProductAsync(CreateProductRequest product)
         {
             if (product == null || !product.IsValid())
                 throw new BusinessException("Invalid product data.", 70000, Enums.ActionResult.InvalidData);
@@ -39,7 +41,7 @@ namespace BusinessLogicLayer.Services
             return id;
         }
 
-        public async Task<ReadProductDTO?> GetProductByIDAsync(int id)
+        public async Task<ProductResponse?> GetProductByIDAsync(int id)
         {
             if (id < 0)
                 throw new BusinessException("Invalid product ID.", 70000, Enums.ActionResult.InvalidData);
@@ -51,13 +53,13 @@ namespace BusinessLogicLayer.Services
             return ProductMap.ToReadDTO(entity);
         }
 
-        public async Task<List<ReadProductDTO>> GetAllProductsAsync()
+        public async Task<List<ProductResponse>> GetAllProductsAsync()
         {
             var products = await _productRepo.GetAllProductsAsync();
             return ProductMap.ToReadDTOList(products);
         }
 
-        public async Task<bool> UpdateProductAsync(int ID, UpdateProductDTO product)
+        public async Task<bool> UpdateProductAsync(int ID, UpdateProductRequest product)
         {
             if (product == null || ID < 0)
                 throw new BusinessException("Invalid product data.", 70000, Enums.ActionResult.InvalidData);
@@ -108,10 +110,8 @@ namespace BusinessLogicLayer.Services
             }
             catch (BusinessException)
             {
-
                 return false;
             }
-
         }
 
         public async Task<bool> IsProductAvailableAsync(int id)
@@ -129,7 +129,6 @@ namespace BusinessLogicLayer.Services
 
         public async Task<List<int>> ValidateProducts(List<int> productIds)
         {
-
             var table = new DataTable();
 
             table.Columns.Add("ProductID", typeof(int));

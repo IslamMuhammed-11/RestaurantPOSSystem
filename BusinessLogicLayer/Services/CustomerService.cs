@@ -18,7 +18,7 @@ namespace BusinessLogicLayer.Services
             _customerRepo = customerRepo;
         }
 
-        public async Task<int?> AddNewCustomerAsync(CreateCustomerDTO customer)
+        public async Task<int?> AddNewCustomerAsync(CreateCustomerRequest customer)
         {
 
             if (customer == null || string.IsNullOrEmpty(customer.Name))
@@ -29,13 +29,13 @@ namespace BusinessLogicLayer.Services
             return await _customerRepo.AddNewCustomerAsync(customerEntity);
         }
 
-        public async Task<List<ReadCustomerDTO>> GetAllCustomersAsync()
+        public async Task<List<CustomerResponse>> GetAllCustomersAsync()
         {
             var customers = await _customerRepo.GetAllCustomersAsync();
             return Mapping.CustomerMap.ToReadDTOList(customers);
         }
 
-        public async Task<ReadCustomerDTO?> GetCustomerByIDAsync(int id)
+        public async Task<CustomerResponse?> GetCustomerByIDAsync(int id)
         {
             var customer = await _customerRepo.GetCustomerByIDAsync(id);
             if (customer == null)
@@ -43,7 +43,7 @@ namespace BusinessLogicLayer.Services
             return Mapping.CustomerMap.ToReadDTO(customer);
         }
 
-        public async Task<Enums.ActionResult> UpdateCustomerAsync(int ID, UpdateCustomerDTO customer)
+        public async Task<Enums.ActionResult> UpdateCustomerAsync(int ID, UpdateCustomerRequest customer)
         {
             var existingCustomer = await _customerRepo.GetCustomerByIDAsync(ID);
             if (existingCustomer == null)

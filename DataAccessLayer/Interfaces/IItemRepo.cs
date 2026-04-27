@@ -10,6 +10,8 @@ namespace DataAccessLayer.Interfaces
     {
         Task<ItemsEntity> GetItemByIdAsync(int Id);
 
+        Task<List<ItemsEntity>> GetAllItemsByOrderId(int orderId);
+
         Task<int?> AddNewItemAsync(ItemsEntity item);
 
         Task<bool> UpdateItemsAsync(ItemsEntity item);

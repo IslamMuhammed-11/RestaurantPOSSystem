@@ -11,20 +11,17 @@ namespace BusinessLogicLayer.Mapping
 {
     public class PersonMap
     {
-        public static CreatePersonDTO ToCreateDTO(PersonEntity entity)
+        public static CreatePersonRequest ToCreateDTO(PersonEntity entity)
         {
-            return new CreatePersonDTO
+            return new CreatePersonRequest
             {
                 FirstName = entity.FirstName,
-                SecondName = entity.SecondName,
-                ThirdName = entity.ThirdName,
-                DateOfBirth = entity.DateOfBirth,
-                Gender = entity.Gender,
+                SecondName = entity.SecondName ?? entity.ThirdName ?? string.Empty,
                 Phone = entity.Phone,
-                Address = entity.Address,
-            };            
+            };
         }
-        public static PersonEntity ToEntity(CreatePersonDTO personDTO)
+
+        public static PersonEntity ToEntity(CreatePersonRequest personDTO)
         {
             return new PersonEntity
             {
@@ -37,6 +34,7 @@ namespace BusinessLogicLayer.Mapping
                 Address = personDTO.Address
             };
         }
+
         //public static PersonEntity ToEntity(CreateUserDTO user)
         //{
         //    return new PersonEntity
@@ -50,64 +48,59 @@ namespace BusinessLogicLayer.Mapping
         //        Address = user.Address
         //    };
         //}
-        public static UpdatePersonDTO ToUpdateDTO(PersonEntity entity)
+        public static UpdatePersonRequest ToUpdateDTO(PersonEntity entity)
         {
-            return new UpdatePersonDTO
+            return new UpdatePersonRequest
             {
-                PersonID = entity.PersonID,
                 FirstName = entity.FirstName,
-                SecondName = entity.SecondName,
-                ThirdName = entity.ThirdName,
-                DateOfBirth = entity.DateOfBirth,
-                Gender = entity.Gender,
+                LastName = entity.SecondName ?? entity.ThirdName ?? string.Empty,
                 Phone = entity.Phone,
-                Address = entity.Address,
             };
         }
-        public static PersonEntity ToEntity(UpdatePersonDTO personDTO)
+
+        public static PersonEntity ToEntity(UpdatePersonRequest personDTO, PersonEntity existingPerson)
         {
             return new PersonEntity
             {
-                PersonID = personDTO.PersonID,
-                FirstName = personDTO.FirstName,
-                SecondName = personDTO.SecondName,
-                ThirdName = personDTO.ThirdName,
-                DateOfBirth = personDTO.DateOfBirth,
-                Gender = personDTO.Gender,
-                Phone = personDTO.Phone,
-                Address = personDTO.Address
+                PersonID = existingPerson.PersonID,
+                FirstName = personDTO.FirstName ?? existingPerson.FirstName,
+                SecondName = personDTO.LastName ?? existingPerson.SecondName,
+                ThirdName = existingPerson.ThirdName,
+                DateOfBirth = existingPerson.DateOfBirth,
+                Gender = existingPerson.Gender,
+                Phone = personDTO.Phone ?? existingPerson.Phone,
+                Address = existingPerson.Address
             };
         }
-        public static PersonResponseDTO ToPersonDTO(PersonEntity entity)
+
+        public static PersonResponse ToPersonDTO(PersonEntity entity)
         {
-            return new PersonResponseDTO
+            return new PersonResponse
             {
                 PersonID = entity.PersonID,
                 FirstName = entity.FirstName,
-                SecondName = entity.SecondName,
-                ThirdName = entity.ThirdName,
-                DateOfBirth = entity.DateOfBirth,
-                Gender = entity.Gender,
+                LastName = entity.SecondName ?? entity.ThirdName ?? string.Empty,
                 Phone = entity.Phone,
-                Address = entity.Address,
             };
         }
-        public static PersonEntity ToEntity(PersonResponseDTO personDTO)
+
+        public static PersonEntity ToEntity(PersonResponse personDTO)
         {
             return new PersonEntity
             {
                 FirstName = personDTO.FirstName,
-                SecondName = personDTO.SecondName,
-                ThirdName = personDTO.ThirdName,
-                DateOfBirth = personDTO.DateOfBirth,
-                Gender = personDTO.Gender,
+                SecondName = personDTO.LastName,
+                ThirdName = string.Empty,
+                DateOfBirth = DateTime.MinValue,
+                Gender = false,
                 Phone = personDTO.Phone,
-                Address = personDTO.Address
+                Address = string.Empty
             };
         }
-        public static List<PersonResponseDTO> ToDTOList(List<PersonEntity> entityList)
+
+        public static List<PersonResponse> ToDTOList(List<PersonEntity> entityList)
         {
-            List<PersonResponseDTO> list = new List<PersonResponseDTO>();
+            List<PersonResponse> list = new List<PersonResponse>();
             foreach (PersonEntity entity in entityList)
             {
                 list.Add(ToPersonDTO(entity));

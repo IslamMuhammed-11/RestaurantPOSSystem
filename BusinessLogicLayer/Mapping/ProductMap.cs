@@ -10,9 +10,9 @@ namespace BusinessLogicLayer.Mapping
 {
     public class ProductMap
     {
-        public static ReadProductDTO ToReadDTO(ProductEntity entity)
+        public static ProductResponse ToReadDTO(ProductEntity entity)
         {
-            return new ReadProductDTO
+            return new ProductResponse
             {
                 ProductID = entity.ProductID,
                 CategoryID = entity.CategoryID,
@@ -22,7 +22,7 @@ namespace BusinessLogicLayer.Mapping
             };
         }
 
-        public static ProductEntity ToEntity(CreateProductDTO dto)
+        public static ProductEntity ToEntity(CreateProductRequest dto)
         {
             return new ProductEntity
             {
@@ -33,7 +33,7 @@ namespace BusinessLogicLayer.Mapping
             };
         }
 
-        public static bool ToEntity(UpdateProductDTO dto, ProductEntity product)
+        public static bool ToEntity(UpdateProductRequest dto, ProductEntity product)
         {
             if (dto == null)
                 return false;
@@ -48,10 +48,10 @@ namespace BusinessLogicLayer.Mapping
             return true;
         }
 
-        public static List<ReadProductDTO> ToReadDTOList(List<ProductEntity> entities)
+        public static List<ProductResponse> ToReadDTOList(List<ProductEntity> entities)
         {
             if (entities == null || entities.Count == 0)
-                return new List<ReadProductDTO>();
+                return new List<ProductResponse>();
             return entities.Select(e => ToReadDTO(e)).ToList();
         }
     }

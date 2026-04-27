@@ -8,13 +8,16 @@ namespace DataAccessLayer.Entites
 {
     public class UserEntity
     {
-
         public int UserID { get; set; }
-        
-        public required int  PersonID { get; set; }
-        public required int RoleID { get; set; }
-        public required string UserName { get; set; }
-        public required string PasswordHash { get; set; }
-        public required bool IsActive { get; set; } = true;
+
+        public int PersonID { get; set; }
+        public int RoleID { get; set; }
+        public string Role { get; set; }
+        public string UserName { get; set; }
+        public string PasswordHash { get; set; }
+        public bool IsActive { get; set; } = true;
+        public string? RefreshTokenHash { get; set; }
+        public DateTime? ExpiresAt { get; set; }
+        public DateTime? RevokedAt { get; set; }
     }
 }

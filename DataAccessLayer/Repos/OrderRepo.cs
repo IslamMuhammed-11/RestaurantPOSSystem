@@ -18,6 +18,80 @@ namespace DataAccessLayer.Repos
                 ?? throw new InvalidOperationException();
         }
 
+        public async Task<OrderAndItemsEntity?> GetOrderAndItemsByOrderIDAsync(int id)
+        {
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetOrderAndItemsByID", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = id;
+            OrderEntity order;
+            List<ItemsEntity> items = new List<ItemsEntity>();
+            try
+            {
+                await connection.OpenAsync();
+
+                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    order = new OrderEntity
+                    {
+                        OrderID = (int)reader["OrderID"],
+
+                        CustomerID = reader["CustomerID"] == DBNull.Value ? null : (int?)reader["CustomerID"],
+
+                        CreatedByUserID = (int)reader["UserID"],
+                        Username = reader["Username"].ToString() ?? string.Empty,
+
+                        TableID = reader["TableID"] == DBNull.Value ? null : (int?)reader["TableID"],
+
+                        TotalPrice = Convert.ToDecimal(reader["TotalPrice"]),
+
+                        OrderStatus = (OrderEntity.enOrderStatus)Convert.ToInt32(reader["OrderStatus"]),
+                        StatusName = reader["StatusName"].ToString() ?? string.Empty,
+
+                        OrderType = (OrderEntity.enOrderType)Convert.ToInt32(reader["OrderType"]),
+                        OrderTypeName = reader["OrderTypeName"].ToString() ?? string.Empty,
+
+                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                        UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(reader["UpdatedAt"]),
+
+                        notes = reader["Notes"]?.ToString()
+                    };
+
+                    await reader.NextResultAsync();
+
+                    while (reader.Read())
+                    {
+                        items.Add(new ItemsEntity
+                        {
+                            ItemID = (int)reader["ItemID"],
+                            OrderID = id,
+                            Price = (decimal)reader["UnitPrice"],
+                            ProductID = (int)reader["ProductID"],
+                            ProductName = (string)reader["ProductName"],
+                            Quantity = (byte)reader["Quantity"]
+                        });
+                    }
+                }
+                else
+                    return null;
+            }
+            catch (SqlException ex)
+            {
+                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+
+                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+            }
+
+            return new OrderAndItemsEntity
+            {
+                Order = order,
+                Items = items
+            };
+        }
+
         public async Task<OrderEntity?> GetOrderByIDAsync(int id)
         {
             using SqlConnection connection = new SqlConnection(_ConnString);
@@ -199,7 +273,7 @@ namespace DataAccessLayer.Repos
             catch (SqlException ex)
             {
                 DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                
+
                 throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
             }
 
@@ -232,7 +306,7 @@ namespace DataAccessLayer.Repos
             catch (SqlException ex)
             {
                 DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                
+
                 throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
             }
 
@@ -241,7 +315,7 @@ namespace DataAccessLayer.Repos
 
         public async Task<bool> ChangeTable(int id, int TableID)
         {
-            if (id <= 0) 
+            if (id <= 0)
                 throw new ArgumentException("Invalid order ID.");
             int RowsAffected = 0;
             using SqlConnection connection = new SqlConnection(_ConnString);
@@ -259,7 +333,7 @@ namespace DataAccessLayer.Repos
             catch (SqlException ex)
             {
                 //DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                
+
                 throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
             }
             return RowsAffected > 0;

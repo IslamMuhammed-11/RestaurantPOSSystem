@@ -2,11 +2,13 @@
 using Contracts.DTOs.TableDTOs;
 using Contracts.Enums;
 using Contracts.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API_Layer.Controllers
 {
+    [Authorize]
     [Route("api/TablesController")]
     [ApiController]
     public class TablesController : ControllerBase
@@ -19,8 +21,10 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("{id}", Name = "GetTableByID")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadTableDTO))]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(TableResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetTableByIDAsync(int id)
@@ -45,7 +49,9 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("All Tables")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReadTableDTO>))]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<TableResponse>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllTablesAsync()
         {
@@ -61,10 +67,12 @@ namespace API_Layer.Controllers
         }
 
         [HttpPost("Add New Table")]
-        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateTableDTO))]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateTableRequest))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AddNewTableAsync(CreateTableDTO table)
+        public async Task<IActionResult> AddNewTableAsync(CreateTableRequest table)
         {
             if (table == null || !table.IsValid())
                 return BadRequest("Invalid table data");
@@ -90,11 +98,13 @@ namespace API_Layer.Controllers
         }
 
         [HttpPut("Update/{id}", Name = "UpdateTable")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        private async Task<IActionResult> UpdateTableAsync(int id, UpdateTableDTO table)
+        private async Task<IActionResult> UpdateTableAsync(int id, UpdateTableRequest table)
         {
             if (id <= 0 || table == null)
                 return BadRequest("Invalid data");
@@ -118,8 +128,10 @@ namespace API_Layer.Controllers
         }
 
         [HttpDelete("Delete/{id}", Name = "DeleteTableByID")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteTableByIDAsync(int id)

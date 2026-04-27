@@ -11,18 +11,20 @@ namespace BusinessLogicLayer.Interfaces
             Preparing = 2,
             Ready = 3,
             Completed = 4,
-            Cancelled = 5 
+            Cancelled = 5
         }
-        
-        Task<int?> CreateOrderAsync(CreateOrderDTO order);
 
-        Task<List<OrderDTO>> GetAllOrdersAsync();
+        Task<int?> CreateOrderAsync(CreateOrderRequest order, int createdByUserId);
 
-        Task<OrderDTO> GetOrderByIdAsync(int orderId);
+        Task<List<OrderResponse>> GetAllOrdersAsync();
 
-        Task<bool> UpdateOrderAsync(int orderId, UpdateOrderDTO order);
+        Task<OrderWithItemsResponse> GetOrderAndItemsByIdAsync(int orderId);
 
-        Task<bool> ChangeOrderStatus(int Id , enOrderStatus OrderStatus);
+        Task<OrderResponse> GetOrderByIdAsync(int orderId);
+
+        Task<bool> UpdateOrderAsync(int orderId, UpdateOrderRequest order);
+
+        Task<bool> ChangeOrderStatus(int Id, enOrderStatus OrderStatus);
 
         Task<bool> ChangeTable(int Id, int TableID);
     }

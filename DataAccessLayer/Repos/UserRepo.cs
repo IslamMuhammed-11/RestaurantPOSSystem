@@ -39,13 +39,61 @@ namespace DataAccessLayer.Repos
                         UserID = ID,
                         PersonID = (int)reader["PersonID"],
                         RoleID = (int)reader["RoleID"],
+                        Role = (string)reader["Role"],
                         UserName = (string)reader["Username"],
                         PasswordHash = (string)reader["PasswordHash"],
-                        IsActive = (bool)reader["IsActive"]
+                        IsActive = (bool)reader["IsActive"],
+                        RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
+                        ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime)reader["ExpiresAt"],
+                        RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime)reader["RevokedAt"]
                     };
                 }
                 else
                     return null;
+            }
+            catch (SqlException ex)
+            {
+                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                return null;
+            }
+        }
+
+        public async Task<UserEntity?> GetUserByUsernameAsync(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return null;
+
+            using SqlConnection connection =
+                new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetUserByUsername", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Username", username);
+
+            try
+            {
+                await connection.OpenAsync();
+
+                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new UserEntity
+                    {
+                        UserID = (int)reader["UserID"],
+                        PersonID = (int)reader["PersonID"],
+                        RoleID = (int)reader["RoleID"],
+                        Role = (string)reader["Role"],
+                        UserName = (string)reader["Username"],
+                        PasswordHash = (string)reader["PasswordHash"],
+                        IsActive = (bool)reader["IsActive"],
+                        RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
+                        ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime?)reader["ExpiresAt"],
+                        RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime?)reader["RevokedAt"]
+                    };
+                }
+
+                return null;
             }
             catch (SqlException ex)
             {
@@ -76,9 +124,13 @@ namespace DataAccessLayer.Repos
                         UserID = (int)reader["UserID"],
                         PersonID = (int)reader["PersonID"],
                         RoleID = (int)reader["RoleID"],
+                        Role = (string)reader["Role"],
                         UserName = (string)reader["UserName"],
                         PasswordHash = (string)reader["PasswordHash"],
-                        IsActive = (bool)reader["IsActive"]
+                        IsActive = (bool)reader["IsActive"],
+                        RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
+                        ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime?)reader["ExpiresAt"],
+                        RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime?)reader["RevokedAt"]
                     });
                 }
             }
@@ -106,6 +158,7 @@ namespace DataAccessLayer.Repos
             cmd.Parameters.AddWithValue("@Username", user.UserName);
             cmd.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
             cmd.Parameters.AddWithValue("@IsActive", user.IsActive);
+
             SqlParameter param = new SqlParameter("@UserID", SqlDbType.Int)
             {
                 Direction = ParameterDirection.Output
@@ -145,6 +198,22 @@ namespace DataAccessLayer.Repos
             cmd.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
             cmd.Parameters.AddWithValue("@UserID", user.UserID);
             cmd.Parameters.AddWithValue("@IsActive", user.IsActive);
+
+            if (user.RefreshTokenHash == null)
+                cmd.Parameters.AddWithValue("@RefreshTokenHash", DBNull.Value);
+            else
+                cmd.Parameters.AddWithValue("@RefreshTokenHash", user.RefreshTokenHash);
+
+            if (user.ExpiresAt == null)
+                cmd.Parameters.AddWithValue("@ExpiresAt", DBNull.Value);
+            else
+                cmd.Parameters.AddWithValue("@ExpiresAt", user.ExpiresAt);
+
+            if (user.RevokedAt == null)
+                cmd.Parameters.AddWithValue("@RevokedAt", DBNull.Value);
+            else
+                cmd.Parameters.AddWithValue("@RevokedAt", user.RevokedAt);
+
             try
             {
                 await connection.OpenAsync();
@@ -295,6 +364,60 @@ namespace DataAccessLayer.Repos
                 DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
                 return false;
             }
+        }
+
+        public async Task<bool> SaveRefreshTokenAsync(UserEntity user)
+        {
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_LoginUser", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@UserId", user.UserID);
+            cmd.Parameters.AddWithValue("@RefreshTokenHash", user.RefreshTokenHash);
+            cmd.Parameters.AddWithValue("@ExpiresAt", user.ExpiresAt);
+
+            int RowsAffected = 0;
+            try
+            {
+                await connection.OpenAsync();
+
+                object? result = await cmd.ExecuteScalarAsync();
+
+                if (result != null && int.TryParse(result.ToString(), out int num))
+                    RowsAffected = num;
+            }
+            catch (SqlException)
+            {
+                return false;
+            }
+
+            return RowsAffected > 0;
+        }
+
+        public async Task<bool> RevokeToken(int id)
+        {
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_RevokeUserToken", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@UserID", id);
+
+            int RowsAffected = 0;
+
+            try
+            {
+                await connection.OpenAsync();
+
+                object? result = await cmd.ExecuteScalarAsync();
+                if (result != null && int.TryParse(result.ToString(), out int num))
+                    RowsAffected = num;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            return RowsAffected > 0;
         }
     }
 }

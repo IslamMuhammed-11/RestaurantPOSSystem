@@ -21,7 +21,7 @@ namespace BusinessLogicLayer.Services
             _tableRepo = tableRepo;
         }
 
-        public async Task<int?> AddNewTableAsync(CreateTableDTO table)
+        public async Task<int?> AddNewTableAsync(CreateTableRequest table)
         {
             if (table == null || !table.IsValid())
                 throw new BusinessException("Invalid table data.", 80000, Enums.ActionResult.InvalidData);
@@ -34,7 +34,7 @@ namespace BusinessLogicLayer.Services
             return id;
         }
 
-        public async Task<ReadTableDTO?> GetTableByIDAsync(int id)
+        public async Task<TableResponse?> GetTableByIDAsync(int id)
         {
             if (id < 0)
                 throw new BusinessException("Invalid table ID.", 80000, Enums.ActionResult.InvalidData);
@@ -46,13 +46,13 @@ namespace BusinessLogicLayer.Services
             return TableMap.ToReadDTO(entity);
         }
 
-        public async Task<List<ReadTableDTO>> GetAllTablesAsync()
+        public async Task<List<TableResponse>> GetAllTablesAsync()
         {
             var tables = await _tableRepo.GetAllTablesAsync();
             return TableMap.ToReadDTOList(tables);
         }
 
-        public async Task<bool> UpdateTableAsync(int ID, UpdateTableDTO table)
+        public async Task<bool> UpdateTableAsync(int ID, UpdateTableRequest table)
         {
             if (table == null || ID < 0)
                 throw new BusinessException("Invalid table data.", 80000, Enums.ActionResult.InvalidData);

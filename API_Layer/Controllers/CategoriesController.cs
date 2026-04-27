@@ -2,11 +2,13 @@
 using Contracts.DTOs.CategoryDTOs;
 using Contracts.Enums;
 using Contracts.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API_Layer.Controllers
 {
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [Route("api/CategoriesController")]
     [ApiController]
     public class CategoriesController : ControllerBase
@@ -19,10 +21,12 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("{id}", Name = "GetCategoryByID")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadCategoryDTO))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CategoryResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetCategoryByIDAsync(int id)
         {
             if (id <= 0)
@@ -45,8 +49,10 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("All Categories")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReadCategoryDTO>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CategoryResponse>))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllCategoriesAsync()
         {
             try
@@ -61,10 +67,12 @@ namespace API_Layer.Controllers
         }
 
         [HttpPost("Add New Category")]
-        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateCategoryDTO))]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateCategoryRequest))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AddNewCategoryAsync(CreateCategoryDTO category)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> AddNewCategoryAsync(CreateCategoryRequest category)
         {
             if (category == null || !category.IsValid())
                 return BadRequest("Invalid category data");
@@ -93,8 +101,10 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateCategoryAsync(int id, UpdateCategoryDTO category)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UpdateCategoryAsync(int id, UpdateCategoryRequest category)
         {
             if (id <= 0 || category == null)
                 return BadRequest("Invalid data");
@@ -120,8 +130,10 @@ namespace API_Layer.Controllers
         [HttpDelete("Delete/{id}", Name = "DeleteCategoryByID")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteCategoryByIDAsync(int id)
         {
             if (id <= 0)

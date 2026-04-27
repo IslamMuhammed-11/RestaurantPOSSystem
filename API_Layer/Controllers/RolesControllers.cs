@@ -1,16 +1,17 @@
 ﻿using BusinessLogicLayer.Interfaces;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Contracts.DTOs.RolesDTOs;
 using Contracts.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace API_Layer.Controllers
 {
+    [Authorize]
     [Route("api/RolesController")]
     [ApiController]
     public class RolesControllers : ControllerBase
     {
-
         private readonly IRolesService _rolesService;
 
         public RolesControllers(IRolesService rolesService)
@@ -19,7 +20,8 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("All Roles")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReadRoleDTO>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RoleResponse>))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllRolesAsync()
         {
@@ -28,8 +30,9 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("{id}", Name = "GetRoleByID")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadRoleDTO))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(RoleResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetRoleByIDAsync(int id)
@@ -45,12 +48,13 @@ namespace API_Layer.Controllers
         }
 
         [HttpPost("Add New Role")]
-        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateRoleDTO))]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateRoleRequest))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AddNewRoleAsync(CreateRoleDTO role)
+        public async Task<IActionResult> AddNewRoleAsync(CreateRoleRequest role)
         {
-            if (role == null || !role.isValid())
+            if (role == null || !role.IsValid())
                 return BadRequest("Invalid role data");
 
             int? ID = await _rolesService.AddNewRoleAsync(role);
@@ -59,15 +63,16 @@ namespace API_Layer.Controllers
 
             role.SetID(ID.Value);
 
-            return CreatedAtAction("GetRoleByID", new {id = ID}, role);
+            return CreatedAtAction("GetRoleByID", new { id = ID }, role);
         }
 
         [HttpPut("Update/{id}", Name = "UpdateRole")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateRoleAsync(int id, UpdateRoleDTO role)
+        public async Task<IActionResult> UpdateRoleAsync(int id, UpdateRoleRequest role)
         {
             if (id <= 0 || role == null)
                 return BadRequest("Invalid data");
@@ -86,6 +91,7 @@ namespace API_Layer.Controllers
         [HttpDelete("Delete/{id}", Name = "DeleteRoleByID")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteRoleByIDAsync(int id)
@@ -102,9 +108,5 @@ namespace API_Layer.Controllers
                 _ => StatusCode(500)
             };
         }
-
-
-
-
     }
 }

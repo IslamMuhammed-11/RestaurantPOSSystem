@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.CustomerDTOs;
 using Contracts.Enums;
+using Microsoft.AspNetCore.Authorization;
+
 namespace API_Layer.Controllers
 {
+    [Authorize]
     [Route("api/CustomersController")]
     [ApiController]
     public class CustomersController : ControllerBase
     {
-
         private readonly ICustomerService _customerService;
 
         public CustomersController(ICustomerService customerService)
@@ -18,10 +20,11 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("{id}", Name = "GetCustomerByID")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ReadCustomerDTO))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(CustomerResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetCustomerByIDAsync(int id)
         {
             if (id <= 0)
@@ -35,8 +38,9 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("All Customers")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<ReadCustomerDTO>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CustomerResponse>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllCustomersAsync()
         {
             var customers = await _customerService.GetAllCustomersAsync();
@@ -44,10 +48,11 @@ namespace API_Layer.Controllers
         }
 
         [HttpPost("Add New Customer")]
-        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateCustomerDTO))]
+        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateCustomerRequest))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AddNewCustomerAsync(CreateCustomerDTO customer)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> AddNewCustomerAsync(CreateCustomerRequest customer)
         {
             if (customer == null || string.IsNullOrEmpty(customer.Name))
                 return BadRequest("Invalid customer data");
@@ -60,12 +65,14 @@ namespace API_Layer.Controllers
 
             return CreatedAtRoute("GetCustomerByID", new { id = ID }, customer);
         }
+
         [HttpPut("Update/{id}", Name = "UpdateCustomer")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateCustomerAsync(int id, UpdateCustomerDTO customer)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UpdateCustomerAsync(int id, UpdateCustomerRequest customer)
         {
             if (id <= 0 || customer == null || string.IsNullOrEmpty(customer.Name))
                 return BadRequest("Invalid data");
@@ -77,7 +84,6 @@ namespace API_Layer.Controllers
                 Enums.ActionResult.Success => Ok("Customer updated successfully"),
                 _ => StatusCode(500)
             };
-
         }
 
         [HttpDelete("Delete/{id}", Name = "DeleteCustomerByID")]
@@ -85,6 +91,7 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteCustomerByIDAsync(int id)
         {
             if (id <= 0)

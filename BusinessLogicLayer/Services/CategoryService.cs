@@ -21,7 +21,7 @@ namespace BusinessLogicLayer.Services
             _categoryRepo = categoryRepo;
         }
 
-        public async Task<int?> AddNewCategoryAsync(CreateCategoryDTO category)
+        public async Task<int?> AddNewCategoryAsync(CreateCategoryRequest category)
         {
             if (category == null || !category.IsValid())
                 throw new BusinessException("Invalid category data.", 60000, Enums.ActionResult.InvalidData);
@@ -32,7 +32,7 @@ namespace BusinessLogicLayer.Services
             return id;
         }
 
-        public async Task<ReadCategoryDTO?> GetCategoryByIDAsync(int id)
+        public async Task<CategoryResponse?> GetCategoryByIDAsync(int id)
         {
             if (id < 0)
                 throw new BusinessException("Invalid category data.", 60000, Enums.ActionResult.InvalidData);
@@ -44,13 +44,13 @@ namespace BusinessLogicLayer.Services
             return CategoryMap.ToReadDTO(entity);
         }
 
-        public async Task<List<ReadCategoryDTO>> GetAllCategoriesAsync()
+        public async Task<List<CategoryResponse>> GetAllCategoriesAsync()
         {
             var categories = await _categoryRepo.GetAllCategoriesAsync();
             return CategoryMap.ToReadDTOList(categories);
         }
 
-        public async Task<bool> UpdateCategoryAsync(int ID, UpdateCategoryDTO category)
+        public async Task<bool> UpdateCategoryAsync(int ID, UpdateCategoryRequest category)
         {
             if (category == null || ID < 0)
                 throw new BusinessException("Invalid category data.", 60000, Enums.ActionResult.InvalidData);

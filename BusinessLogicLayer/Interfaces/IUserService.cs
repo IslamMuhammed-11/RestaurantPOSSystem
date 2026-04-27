@@ -5,13 +5,15 @@ namespace BusinessLogicLayer.Interfaces
 {
     public interface IUserService
     {
-        Task<int?> AddNewUserAsync(CreateUserDTO user);
+        Task<int?> AddNewUserAsync(CreateUserRequest user);
 
-        Task<Enums.ActionResult> UpdateUserAsync(int ID, UpdateUserDTO user);
+        Task<Enums.ActionResult> UpdateUserAsync(int ID, UpdateUserRequest user);
 
-        Task<ReadUserDTO?> GetUserByIDAsync(int id);
+        Task<UserResponse?> GetUserByIDAsync(int id);
 
-        Task<List<ReadUserDTO>> GetAllUsersAsync();
+        Task<UserTokenData?> GetUserByUsernameAsync(string username);
+
+        Task<List<UserResponse>> GetAllUsersAsync();
 
         Task<Enums.ActionResult> DeleteUserByIDAsync(int id);
 
@@ -22,5 +24,9 @@ namespace BusinessLogicLayer.Interfaces
         Task<Enums.ActionResult> UpdatePassword(int UserID, string NewPassword, string Password);
 
         Task<bool> IsUserValid(int UserID);
+
+        Task<bool> SaveRefreshTokenAsync(UserTokenData user);
+
+        Task<bool> RevokeToken(int userId);
     }
 }
