@@ -70,7 +70,7 @@ namespace BusinessLogicLayer.Services
             return UserMap.ToReadDTOWithPasswordHash(userEntity);
         }
 
-        public async Task<Enums.ActionResult> UpdateUserAsync(int id, UpdateUserRequest user)
+        public async Task<Enums.ActionResult> UpdateUsernameAsync(int id, UpdateUserRequest user)
         {
             if (id <= 0)
                 return Enums.ActionResult.InvalidData;
@@ -79,10 +79,6 @@ namespace BusinessLogicLayer.Services
 
             if (existingUser is null)
                 return Enums.ActionResult.NotFound;
-
-            //Checking if the Password is Changed
-            if (!string.IsNullOrEmpty(user.Password) && !BCrypt.Net.BCrypt.Verify(user.Password, existingUser.PasswordHash))
-                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
             if (!UserMap.ToEntity(user, existingUser))
                 return Enums.ActionResult.Error;

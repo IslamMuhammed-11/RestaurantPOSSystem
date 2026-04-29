@@ -5,6 +5,7 @@ using Contracts.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API_Layer.Controllers
 {
@@ -20,8 +21,9 @@ namespace API_Layer.Controllers
             _paymentService = paymentService;
         }
 
-        [HttpGet("order/{orderId}", Name = "GetPaymentByOrderID")]
+        [HttpGet("payments/by-order/{orderId}", Name = "GetPaymentByOrderID")]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PaymentResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -50,6 +52,7 @@ namespace API_Layer.Controllers
 
         [HttpGet(Name = "GetAllPayments")]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -66,8 +69,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPost("{orderId}")]
+        [HttpPost("orders/{orderId}/payments")]
         [Authorize(Roles = "Admin,SuperAdmin,Cashier")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreatePaymentCreatedResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

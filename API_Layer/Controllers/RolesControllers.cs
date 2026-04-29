@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API_Layer.Controllers
 {
     [Authorize]
-    [Route("api/RolesController")]
+    [Route("api/roles")]
     [ApiController]
     public class RolesControllers : ControllerBase
     {

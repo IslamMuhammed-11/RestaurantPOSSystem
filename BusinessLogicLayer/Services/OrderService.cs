@@ -136,7 +136,7 @@ namespace BusinessLogicLayer.Services
             return await _orderRepo.ChangeOrderStatus(Id, newStatus);
         }
 
-        public async Task<bool> ChangeTable(int Id, int TableID)
+        public async Task<bool> ChangeTable(int Id, ChangeTableRequest req)
         {
             var orderEntity = await _orderRepo.GetOrderByIDAsync(Id);
             if (orderEntity == null)
@@ -145,13 +145,13 @@ namespace BusinessLogicLayer.Services
             if (orderEntity.OrderType != OrderEntity.enOrderType.DineIn)
                 throw new BusinessException("Only DineIn orders can have their table changed.", 50018, Enums.ActionResult.InvalidData);
 
-            if (orderEntity.TableID == TableID)
+            if (orderEntity.TableID == req.TableID)
                 throw new BusinessException("Cannot Change To The Same Table", 50019, Enums.ActionResult.InvalidData);
 
             if (orderEntity.OrderStatus == OrderEntity.enOrderStatus.Cancelled || orderEntity.OrderStatus == OrderEntity.enOrderStatus.Completed)
                 throw new BusinessException("Order is cancelled or completed", 50020, Enums.ActionResult.Conflict);
 
-            return await _orderRepo.ChangeTable(Id, TableID);
+            return await _orderRepo.ChangeTable(Id, req.TableID);
         }
     }
 }

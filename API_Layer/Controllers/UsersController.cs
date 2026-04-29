@@ -6,11 +6,12 @@ using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API_Layer.Controllers
 {
     [Authorize]
-    [Route("api/UsersController")]
+    [Route("api/users")]
     [ApiController]
     public class UsersController : ControllerBase
     {
@@ -23,14 +24,15 @@ namespace API_Layer.Controllers
             _personService = personService;
         }
 
-        //Ownership policy Will Be added Here
+        //Ownership policy
         [HttpGet("{id}", Name = "GetUserByID")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetUserByIDAsync(int id)
+        public async Task<IActionResult> GetUserByIDAsync(int id, [FromServices] IAuthorizationService authorizationService)
         {
             if (id <= 0)
                 return BadRequest("Invalid ID");
@@ -40,11 +42,18 @@ namespace API_Layer.Controllers
             if (user == null)
                 return NotFound("User not found");
 
+            var authResult = await authorizationService.AuthorizeAsync(User, user.UserID, "UserOwnerOrSuperOrAdmin");
+
+            if (!authResult.Succeeded)
+                return Forbid();
+
             return Ok(user);
         }
 
-        [HttpGet("All Users")]
+        [HttpGet()]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllUsersAsync()
@@ -53,10 +62,12 @@ namespace API_Layer.Controllers
             return Ok(users);
         }
 
-        [HttpPost("Add New User")]
+        [HttpPost()]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AddNewUserAsync(CreateUserRequest user)
@@ -74,16 +85,23 @@ namespace API_Layer.Controllers
             return CreatedAtRoute("GetUserByID", new { id = ID }, user);
         }
 
-        [HttpPut("{id}/Update")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        //Policy Ownership
+        [HttpPatch("{id}/username")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateUserAsync(int id, UpdateUserRequest user)
+        public async Task<IActionResult> UpdateUserAsync(int id, UpdateUserRequest user, [FromServices] IAuthorizationService authorizationService)
         {
-            var result = await _userService.UpdateUserAsync(id, user);
+            var authResult = await authorizationService.AuthorizeAsync(User, id, "UserOwnerOrSuperOrAdmin");
+
+            if (!authResult.Succeeded)
+                return Forbid();
+
+            var result = await _userService.UpdateUsernameAsync(id, user);
 
             return result switch
             {
@@ -94,9 +112,11 @@ namespace API_Layer.Controllers
             };
         }
 
-        [HttpDelete("{id}/Delete")]
+        [HttpDelete("{id}")]
         [Authorize(Roles = "SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -113,10 +133,12 @@ namespace API_Layer.Controllers
             };
         }
 
-        [HttpPatch("{id}/Deactivate")]
+        [HttpPatch("{id}/deactivate")]
         [Authorize(Roles = "SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -133,10 +155,12 @@ namespace API_Layer.Controllers
             };
         }
 
-        [HttpPatch("{id}/Activate")]
+        [HttpPatch("{id}/activate")]
         [Authorize(Roles = "SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -153,17 +177,23 @@ namespace API_Layer.Controllers
             };
         }
 
-        //Ownership Policy will be added here
-        [HttpPatch("{id}/UpdatePassword")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        //Ownership Policy
+        [HttpPatch("{id}/password")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdatePasswordAsync(int id, string NewPassword, string Password)
+        public async Task<IActionResult> UpdatePasswordAsync(int id, [FromBody] ChangePasswordRequest req, [FromServices] IAuthorizationService authorizationService)
         {
-            var result = await _userService.UpdatePassword(id, NewPassword, Password);
+            var authResult = await authorizationService.AuthorizeAsync(User, id, "UserOwnerOrSuperOrAdmin");
+
+            if (!authResult.Succeeded)
+                return Forbid();
+
+            var result = await _userService.UpdatePassword(id, req.NewPassword, req.CurrentPassword);
 
             return result switch
             {

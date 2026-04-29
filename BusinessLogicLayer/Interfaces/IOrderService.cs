@@ -26,6 +26,6 @@ namespace BusinessLogicLayer.Interfaces
 
         Task<bool> ChangeOrderStatus(int Id, enOrderStatus OrderStatus);
 
-        Task<bool> ChangeTable(int Id, int TableID);
+        Task<bool> ChangeTable(int Id, ChangeTableRequest req);
     }
 }

@@ -58,15 +58,6 @@ namespace BusinessLogicLayer.Mapping
             if (!string.IsNullOrEmpty(dto.Username))
                 user.UserName = dto.Username;
 
-            if (!string.IsNullOrEmpty(dto.Password))
-                user.PasswordHash = dto.Password; // In a real application, you should hash the password before storing it
-
-            if (dto.IsActive.HasValue)
-                user.IsActive = dto.IsActive.Value;
-
-            if (dto.RoleID.HasValue)
-                user.RoleID = dto.RoleID.Value;
-
             return true;
         }
 

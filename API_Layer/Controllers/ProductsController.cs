@@ -5,11 +5,12 @@ using Contracts.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API_Layer.Controllers
 {
     [Authorize]
-    [Route("api/ProductsController")]
+    [Route("api/products")]
     [ApiController]
     public class ProductsController : ControllerBase
     {
@@ -21,6 +22,7 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("{id}", Name = "GetProductByID")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ProductResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -47,7 +49,8 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpGet("All Products")]
+        [HttpGet()]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -64,8 +67,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPost("Add New Product")]
+        [HttpPost()]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateProductRequest))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -97,8 +101,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPut("Update/{id}", Name = "UpdateProduct")]
+        [HttpPut("{id}", Name = "UpdateProduct")]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -127,8 +132,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpDelete("Delete/{id}", Name = "DeleteProductByID")]
+        [HttpDelete("{id}", Name = "DeleteProductByID")]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

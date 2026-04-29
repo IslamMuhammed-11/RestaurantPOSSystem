@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace API_Layer.Controllers
 {
     [Authorize]
-    [Route("api/CustomersController")]
+    [Route("api/customers")]
     [ApiController]
     public class CustomersController : ControllerBase
     {
@@ -37,7 +37,7 @@ namespace API_Layer.Controllers
             return Ok(customer);
         }
 
-        [HttpGet("All Customers")]
+        [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CustomerResponse>))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -47,7 +47,7 @@ namespace API_Layer.Controllers
             return Ok(customers);
         }
 
-        [HttpPost("Add New Customer")]
+        [HttpPost("create")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateCustomerRequest))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -66,7 +66,7 @@ namespace API_Layer.Controllers
             return CreatedAtRoute("GetCustomerByID", new { id = ID }, customer);
         }
 
-        [HttpPut("Update/{id}", Name = "UpdateCustomer")]
+        [HttpPut("{id}/update", Name = "UpdateCustomer")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -86,7 +86,7 @@ namespace API_Layer.Controllers
             };
         }
 
-        [HttpDelete("Delete/{id}", Name = "DeleteCustomerByID")]
+        [HttpDelete("{id}/delete", Name = "DeleteCustomerByID")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

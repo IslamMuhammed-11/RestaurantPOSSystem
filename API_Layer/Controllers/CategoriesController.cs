@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API_Layer.Controllers
 {
     [Authorize(Roles = "Admin,SuperAdmin")]
-    [Route("api/CategoriesController")]
+    [Route("api/categories")]
     [ApiController]
     public class CategoriesController : ControllerBase
     {
@@ -48,7 +48,7 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpGet("All Categories")]
+        [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<CategoryResponse>))]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -66,7 +66,7 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPost("Add New Category")]
+        [HttpPost("create")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateCategoryRequest))]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -97,7 +97,7 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPut("Update/{id}", Name = "UpdateCategory")]
+        [HttpPut("{id}/update", Name = "UpdateCategory")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -127,7 +127,7 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpDelete("Delete/{id}", Name = "DeleteCategoryByID")]
+        [HttpDelete("{id}/delete", Name = "DeleteCategoryByID")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

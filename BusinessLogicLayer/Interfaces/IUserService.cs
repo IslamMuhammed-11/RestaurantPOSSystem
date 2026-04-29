@@ -7,7 +7,7 @@ namespace BusinessLogicLayer.Interfaces
     {
         Task<int?> AddNewUserAsync(CreateUserRequest user);
 
-        Task<Enums.ActionResult> UpdateUserAsync(int ID, UpdateUserRequest user);
+        Task<Enums.ActionResult> UpdateUsernameAsync(int ID, UpdateUserRequest user);
 
         Task<UserResponse?> GetUserByIDAsync(int id);
 

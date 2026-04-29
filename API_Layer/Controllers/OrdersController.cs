@@ -6,12 +6,13 @@ using Contracts.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace API_Layer.Controllers
 {
     [Authorize]
-    [Route("api/OrdersController")]
+    [Route("api/orders")]
     [ApiController]
     public class OrdersController : ControllerBase
     {
@@ -24,8 +25,9 @@ namespace API_Layer.Controllers
             _itemService = itemService;
         }
 
-        [HttpPost("order/create")]
+        [HttpPost()]
         [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [EnableRateLimiting("OrderLimiter")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -86,8 +88,11 @@ namespace API_Layer.Controllers
         }
 
         //Ownership policy will be applied here for waiter
-        [HttpGet("order/all")]
-        [Authorize(Roles = "Admin,SuperAdmin,Cashier")]
+        //Kitchen should see active orders too
+        //Probably Will be Solved By Filtering.
+        [HttpGet()]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Kitchen")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -105,8 +110,10 @@ namespace API_Layer.Controllers
         }
 
         //Ownership policy will be applied here for waiter
-        [HttpGet("order/{id}", Name = "GetOrderById")]
-        [Authorize(Roles = "Admin,SuperAdmin,Cashier")]
+        //Probably Waiter will be addded in the roles
+        [HttpGet("{id}", Name = "GetOrderById")]
+        [Authorize(Roles = "Admin,SuperAdmin,Cashier,Kitchen")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -185,8 +192,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPut("order/{id}/preparing")]
+        [HttpPatch("{id}/preparing")]
         [Authorize(Roles = "Admin,SuperAdmin,Kitchen")]
+        [EnableRateLimiting("OrderLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -197,8 +205,9 @@ namespace API_Layer.Controllers
             return await ChangeStatus(id, IOrderService.enOrderStatus.Preparing);
         }
 
-        [HttpPut("order/{id}/ready")]
+        [HttpPatch("{id}/ready")]
         [Authorize(Roles = "Admin,SuperAdmin,Kitchen")]
+        [EnableRateLimiting("OrderLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -209,8 +218,9 @@ namespace API_Layer.Controllers
             return await ChangeStatus(id, IOrderService.enOrderStatus.Ready);
         }
 
-        [HttpPut("order/{id}/cancelled")]
+        [HttpPatch("{id}/cancelled")]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("OrderLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -221,20 +231,21 @@ namespace API_Layer.Controllers
             return await ChangeStatus(id, IOrderService.enOrderStatus.Cancelled);
         }
 
-        [HttpPut("order/{id}/ChangeTable/{TableID}")]
+        [HttpPatch("{id}/table")]
         [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [EnableRateLimiting("OrderLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> ChangeTable(int id, int TableID)
+        public async Task<IActionResult> ChangeTable(int id, [FromBody] ChangeTableRequest req)
         {
             try
             {
-                bool isUpdated = await _orderService.ChangeTable(id, TableID);
+                bool isUpdated = await _orderService.ChangeTable(id, req);
                 if (!isUpdated)
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Failed to change table.");
+                    return StatusCode(StatusCodes.Status500InternalServerError, "Unexpected error occured");
                 return NoContent();
             }
             catch (BusinessException ex)
@@ -252,8 +263,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPost("order/{Id}/Item")]
+        [HttpPost("{Id}/items")]
         [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [EnableRateLimiting("OrderLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -283,8 +295,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPut("order/{orderId}/Item{ItemId}")]
+        [HttpPatch("{orderId}/items/{ItemId}")]
         [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [EnableRateLimiting("OrderLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -316,8 +329,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpDelete("order/{orderId}/Item{itemId}")]
+        [HttpDelete("{orderId}/items/{itemId}")]
         [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [EnableRateLimiting("OrderLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

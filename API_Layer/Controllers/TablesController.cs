@@ -5,11 +5,12 @@ using Contracts.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API_Layer.Controllers
 {
     [Authorize]
-    [Route("api/TablesController")]
+    [Route("api/tables")]
     [ApiController]
     public class TablesController : ControllerBase
     {
@@ -22,6 +23,7 @@ namespace API_Layer.Controllers
 
         [HttpGet("{id}", Name = "GetTableByID")]
         [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(TableResponse))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -48,8 +50,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpGet("All Tables")]
+        [HttpGet()]
         [Authorize(Roles = "Admin,SuperAdmin,Cashier,Waiter")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<TableResponse>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -66,8 +69,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPost("Add New Table")]
+        [HttpPost()]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateTableRequest))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -97,8 +101,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpPut("Update/{id}", Name = "UpdateTable")]
+        [HttpPut("{id}", Name = "UpdateTable")]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -127,8 +132,9 @@ namespace API_Layer.Controllers
             }
         }
 
-        [HttpDelete("Delete/{id}", Name = "DeleteTableByID")]
+        [HttpDelete("{id}", Name = "DeleteTableByID")]
         [Authorize(Roles = "Admin,SuperAdmin")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
