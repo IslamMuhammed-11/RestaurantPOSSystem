@@ -3,11 +3,14 @@ using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Services;
 using DataAccessLayer.Interfaces;
 using DataAccessLayer.Repos;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Build.Framework;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.VisualStudio.Web.CodeGeneration.Design;
 using NuGet.Packaging.Signing;
 using System.Security.Claims;
 using System.Text;
@@ -173,7 +176,11 @@ builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPaymentMethodRepo, PaymentMethodRepo>();
 builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
+builder.Services.AddScoped<IRefundedPaymentsRepo, RefundedPaymentsRep>();
+builder.Services.AddScoped<IRefundedPaymentsService, RefundedPaymentsService>();
+
 //------------------------------------//
+builder.Services.AddMediatR(typeof(Program));
 
 builder.Services.AddCors(options =>
 options.AddPolicy("RestaurantApiCorsPolicy", policy =>
@@ -184,6 +191,7 @@ policy.WithOrigins("https://localhost:7186",
 ));
 
 var app = builder.Build();
+
 //builder.Configuration.GetConnectionString("DefaultConnection");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -194,6 +202,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

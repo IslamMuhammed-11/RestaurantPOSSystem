@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
   <Project Path="API_Layer/API_Layer.csproj" />
   <Project Path="BusinessLogicLayer/BusinessLogicLayer.csproj" />
   <Project Path="Contracts/Contracts.csproj" Id="5f68e673-42be-4944-9a7a-01a334d8daa4" />

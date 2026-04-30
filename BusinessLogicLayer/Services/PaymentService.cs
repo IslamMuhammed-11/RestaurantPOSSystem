@@ -8,6 +8,8 @@ using BusinessLogicLayer.Mapping;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MediatR;
+using BusinessLogicLayer.Events;
 
 namespace BusinessLogicLayer.Services
 {
@@ -16,12 +18,15 @@ namespace BusinessLogicLayer.Services
         private readonly IPaymentRepo _paymentRepo;
         private readonly IOrderRepo _orderRepo;
         private readonly IPaymentMethodService _paymentMethodService;
+        private readonly IMediator _mediator;
 
-        public PaymentService(IPaymentRepo paymentRepo, IOrderRepo orderRepo, IPaymentMethodService paymentMethodService)
+        public PaymentService(IPaymentRepo paymentRepo, IOrderRepo orderRepo,
+            IPaymentMethodService paymentMethodService, IMediator mediator)
         {
             _paymentRepo = paymentRepo;
             _orderRepo = orderRepo;
             _paymentMethodService = paymentMethodService;
+            _mediator = mediator;
         }
 
         public async Task<int?> CreateNewPaymentAsync(int orderId, CreatePaymentRequest payment)
@@ -51,7 +56,15 @@ namespace BusinessLogicLayer.Services
             // Map DTO to entity
             var entity = PaymentMap.ToEntity(payment, orderId);
 
-            return await _paymentRepo.CreateNewPaymentAsync(entity);
+            int? ID = await _paymentRepo.CreateNewPaymentAsync(entity);
+
+            if (!ID.HasValue)
+                return null;
+
+            await _mediator.Publish(new PaymentCreated.PaymentCreatedEvent
+                (entity.PaymentID, entity.OrderID, entity.PaidAmount, DateTime.Now));
+
+            return ID;
         }
 
         public async Task<List<PaymentResponse>> GetAllPaymentsAsync()
