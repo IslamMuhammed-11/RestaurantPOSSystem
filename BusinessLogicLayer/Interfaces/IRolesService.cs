@@ -13,12 +13,12 @@ namespace BusinessLogicLayer.Interfaces
     {
         Task<int?> AddNewRoleAsync(CreateRoleRequest role);
 
-        Task<Enums.ActionResult> UpdateRoleAsync(int ID, UpdateRoleRequest role);
+        Task<ActionResultEnum.ActionResult> UpdateRoleAsync(int ID, UpdateRoleRequest role);
 
         Task<RoleResponse?> GetRoleByIDAsync(int id);
 
         Task<List<RoleResponse>> GetAllRolesAsync();
 
-        Task<Enums.ActionResult> DeleteRoleByIDAsync(int id);
+        Task<ActionResultEnum.ActionResult> DeleteRoleByIDAsync(int id);
     }
 }

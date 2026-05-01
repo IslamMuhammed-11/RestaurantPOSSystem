@@ -10,9 +10,9 @@ namespace BusinessLogicLayer.Interfaces
     public interface ICustomerService
     {
             Task<int?> AddNewCustomerAsync(CreateCustomerRequest customer);
-            Task<Enums.ActionResult> UpdateCustomerAsync(int ID, UpdateCustomerRequest customer);
+            Task<ActionResultEnum.ActionResult> UpdateCustomerAsync(int ID, UpdateCustomerRequest customer);
             Task<CustomerResponse?> GetCustomerByIDAsync(int id);
             Task<List<CustomerResponse>> GetAllCustomersAsync();
-            Task<Enums.ActionResult> DeleteCustomerByIDAsync(int id);
+            Task<ActionResultEnum.ActionResult> DeleteCustomerByIDAsync(int id);
     }
 }

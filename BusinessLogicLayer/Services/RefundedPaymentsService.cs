@@ -23,20 +23,20 @@ namespace BusinessLogicLayer.Services
         public async Task<int?> RefundPaymentAsync(CreateRefundPaymentRequest refund)
         {
             if (refund == null || !refund.IsValid())
-                throw new BusinessException("Invalid refund data.", 91000, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Invalid refund data.", 91000, ActionResultEnum.ActionResult.InvalidData);
 
             var payment = await _paymentRepo.GetPaymentByPaymentIdAsync(refund.PaymentID);
             if (payment == null)
-                throw new BusinessException("Payment not found.", 91001, Enums.ActionResult.NotFound);
+                throw new BusinessException("Payment not found.", 91001, ActionResultEnum.ActionResult.NotFound);
 
             if (refund.Amount > payment.PaidAmount)
-                throw new BusinessException("Refund amount cannot exceed the paid amount.", 91002, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Refund amount cannot exceed the paid amount.", 91002, ActionResultEnum.ActionResult.InvalidData);
 
             var entity = RefundedPaymentsMap.ToEntity(refund);
             int? refundId = await _refundedPaymentsRepo.RefundPaymentAsync(entity);
 
             if (!refundId.HasValue)
-                throw new BusinessException("Failed to create refund.", 91003, Enums.ActionResult.DBError);
+                throw new BusinessException("Failed to create refund.", 91003, ActionResultEnum.ActionResult.DBError);
 
             return refundId;
         }
@@ -50,11 +50,11 @@ namespace BusinessLogicLayer.Services
         public async Task<RefundedPaymentResponse?> GetRefundedPaymentByIDAsync(int refundId)
         {
             if (refundId <= 0)
-                throw new BusinessException("Invalid refund ID.", 91004, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Invalid refund ID.", 91004, ActionResultEnum.ActionResult.InvalidData);
 
             var refund = await _refundedPaymentsRepo.GetRefundedPaymentByIDAsync(refundId);
             if (refund == null)
-                throw new BusinessException("Refund not found.", 91005, Enums.ActionResult.NotFound);
+                throw new BusinessException("Refund not found.", 91005, ActionResultEnum.ActionResult.NotFound);
 
             return RefundedPaymentsMap.ToReadDTO(refund);
         }

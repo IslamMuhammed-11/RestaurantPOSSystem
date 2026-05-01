@@ -43,26 +43,26 @@ namespace BusinessLogicLayer.Services
             return Mapping.CustomerMap.ToReadDTO(customer);
         }
 
-        public async Task<Enums.ActionResult> UpdateCustomerAsync(int ID, UpdateCustomerRequest customer)
+        public async Task<ActionResultEnum.ActionResult> UpdateCustomerAsync(int ID, UpdateCustomerRequest customer)
         {
             var existingCustomer = await _customerRepo.GetCustomerByIDAsync(ID);
             if (existingCustomer == null)
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
             bool isUpdated = Mapping.CustomerMap.ToEntity(customer, existingCustomer);
             if (!isUpdated)
-                return Enums.ActionResult.InvalidData;
+                return ActionResultEnum.ActionResult.InvalidData;
             bool updateResult = await _customerRepo.UpdateCustomerAsync(existingCustomer);
-            return updateResult ? Enums.ActionResult.Success : Enums.ActionResult.DBError;
+            return updateResult ? ActionResultEnum.ActionResult.Success : ActionResultEnum.ActionResult.DBError;
         }
 
-        public async Task<Enums.ActionResult> DeleteCustomerByIDAsync(int id)
+        public async Task<ActionResultEnum.ActionResult> DeleteCustomerByIDAsync(int id)
         {
             var existingCustomer = await _customerRepo.GetCustomerByIDAsync(id);
             if (existingCustomer == null)
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
             bool deleteResult = await _customerRepo.DeleteCustomerAsync(id);
 
-            return deleteResult ? Enums.ActionResult.Success : Enums.ActionResult.DBError;
+            return deleteResult ? ActionResultEnum.ActionResult.Success : ActionResultEnum.ActionResult.DBError;
         }
     }
 }

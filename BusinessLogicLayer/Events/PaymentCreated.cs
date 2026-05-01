@@ -14,8 +14,7 @@ namespace BusinessLogicLayer.Events
             (
                 int PaymentID,
                 int OrderID,
-                decimal PaidAmoun,
-                DateTime PaidAt
+                decimal PaidAmoun
             ) : INotification;
     }
 }

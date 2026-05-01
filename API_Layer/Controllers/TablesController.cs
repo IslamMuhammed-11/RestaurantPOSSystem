@@ -43,8 +43,8 @@ namespace API_Layer.Controllers
             {
                 return ex.ErrorType switch
                 {
-                    Enums.ActionResult.NotFound => NotFound(ex.Message),
-                    Enums.ActionResult.InvalidData => BadRequest(ex.Message),
+                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
+                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
                 };
             }
@@ -94,8 +94,8 @@ namespace API_Layer.Controllers
             {
                 return ex.ErrorType switch
                 {
-                    Enums.ActionResult.InvalidData => BadRequest(ex.Message),
-                    Enums.ActionResult.DBError => StatusCode(StatusCodes.Status500InternalServerError, ex.Message),
+                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
+                    ActionResultEnum.ActionResult.DBError => StatusCode(StatusCodes.Status500InternalServerError, ex.Message),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
                 };
             }
@@ -125,8 +125,8 @@ namespace API_Layer.Controllers
             {
                 return ex.ErrorType switch
                 {
-                    Enums.ActionResult.NotFound => NotFound(ex.Message),
-                    Enums.ActionResult.InvalidData => BadRequest(ex.Message),
+                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
+                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
                 };
             }
@@ -156,8 +156,8 @@ namespace API_Layer.Controllers
             {
                 return ex.ErrorType switch
                 {
-                    Enums.ActionResult.NotFound => NotFound(ex.Message),
-                    Enums.ActionResult.InvalidData => BadRequest(ex.Message),
+                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
+                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
                     _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
                 };
             }

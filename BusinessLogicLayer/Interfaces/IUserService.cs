@@ -7,7 +7,7 @@ namespace BusinessLogicLayer.Interfaces
     {
         Task<int?> AddNewUserAsync(CreateUserRequest user);
 
-        Task<Enums.ActionResult> UpdateUsernameAsync(int ID, UpdateUserRequest user);
+        Task<ActionResultEnum.ActionResult> UpdateUsernameAsync(int ID, UpdateUserRequest user);
 
         Task<UserResponse?> GetUserByIDAsync(int id);
 
@@ -15,13 +15,13 @@ namespace BusinessLogicLayer.Interfaces
 
         Task<List<UserResponse>> GetAllUsersAsync();
 
-        Task<Enums.ActionResult> DeleteUserByIDAsync(int id);
+        Task<ActionResultEnum.ActionResult> DeleteUserByIDAsync(int id);
 
-        Task<Enums.ActionResult> DeactivateUserAsync(int UserID);
+        Task<ActionResultEnum.ActionResult> DeactivateUserAsync(int UserID);
 
-        Task<Enums.ActionResult> ActivateUserAsync(int UserID);
+        Task<ActionResultEnum.ActionResult> ActivateUserAsync(int UserID);
 
-        Task<Enums.ActionResult> UpdatePassword(int UserID, string NewPassword, string Password);
+        Task<ActionResultEnum.ActionResult> UpdatePassword(int UserID, string NewPassword, string Password);
 
         Task<bool> IsUserValid(int UserID);
 

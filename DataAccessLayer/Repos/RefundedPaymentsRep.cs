@@ -50,7 +50,7 @@ namespace DataAccessLayer.Repos
             catch (SqlException ex)
             {
                 // DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             if (outputParam.Value == DBNull.Value)
@@ -89,7 +89,7 @@ namespace DataAccessLayer.Repos
             catch (SqlException ex)
             {
                 //DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return refunds;
@@ -127,7 +127,7 @@ namespace DataAccessLayer.Repos
             catch (SqlException ex)
             {
                 //DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return null;

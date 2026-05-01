@@ -79,9 +79,9 @@ namespace API_Layer.Controllers
             var result = await _customerService.UpdateCustomerAsync(id, customer);
             return result switch
             {
-                Enums.ActionResult.NotFound => NotFound("Customer not found"),
-                Enums.ActionResult.InvalidData => BadRequest("Invalid customer data"),
-                Enums.ActionResult.Success => Ok("Customer updated successfully"),
+                ActionResultEnum.ActionResult.NotFound => NotFound("Customer not found"),
+                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid customer data"),
+                ActionResultEnum.ActionResult.Success => Ok("Customer updated successfully"),
                 _ => StatusCode(500)
             };
         }
@@ -99,8 +99,8 @@ namespace API_Layer.Controllers
             var result = await _customerService.DeleteCustomerByIDAsync(id);
             return result switch
             {
-                Enums.ActionResult.NotFound => NotFound("Customer not found"),
-                Enums.ActionResult.Success => NoContent(),
+                ActionResultEnum.ActionResult.NotFound => NotFound("Customer not found"),
+                ActionResultEnum.ActionResult.Success => NoContent(),
                 _ => StatusCode(500)
             };
         }

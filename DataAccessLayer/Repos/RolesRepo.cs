@@ -14,13 +14,14 @@ namespace DataAccessLayer.Repos
 {
     public class RolesRepo : IRoleRepo
     {
-
         private readonly string _ConnString;
+
         public RolesRepo(Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _ConnString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException();
         }
+
         public async Task<RoleEntity?> GetRoleByIDAsync(int id)
         {
             using SqlConnection connection = new SqlConnection(_ConnString);
@@ -36,12 +37,12 @@ namespace DataAccessLayer.Repos
                 using SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
                 if (await reader.ReadAsync())
-                  {
+                {
                     return new RoleEntity
                     {
                         RoleID = (int)reader["RoleID"],
                         RoleName = reader["RoleName"]?.ToString() ?? string.Empty,
-                        Premission = Convert.ToInt16(reader["Premission"])
+                        // Premission = Convert.ToInt16(reader["Premission"])
                     };
                 }
             }
@@ -50,9 +51,9 @@ namespace DataAccessLayer.Repos
                 DataAccessSettings.LogEvent(ex.Message, EventLogEntryType.Error);
             }
 
-
             return null;
         }
+
         public async Task<List<RoleEntity>> GetAllRoleAsync()
         {
             List<RoleEntity> roles = new List<RoleEntity>();
@@ -73,7 +74,7 @@ namespace DataAccessLayer.Repos
                     {
                         RoleID = (int)reader["RoleID"],
                         RoleName = reader["RoleName"]?.ToString() ?? string.Empty,
-                        Premission = Convert.ToInt16(reader["Premission"])
+                        //Premission = Convert.ToInt16(reader["Permission"])
                     });
                 }
             }
@@ -96,7 +97,7 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
 
             cmd.Parameters.AddWithValue("@RoleName", role.RoleName);
-            cmd.Parameters.AddWithValue("@Premission", role.Premission);
+            //cmd.Parameters.AddWithValue("@Premission", role.Premission);
 
             SqlParameter param = new SqlParameter("@RoleID", SqlDbType.Int)
             {

@@ -42,21 +42,21 @@ namespace BusinessLogicLayer.Services
             return RolesMap.ToReadDTO(roleEntity);
         }
 
-        public async Task<Enums.ActionResult> UpdateRoleAsync(int id, UpdateRoleRequest role)
+        public async Task<ActionResultEnum.ActionResult> UpdateRoleAsync(int id, UpdateRoleRequest role)
         {
             if (role == null || id < 0)
-                return Enums.ActionResult.InvalidData;
+                return ActionResultEnum.ActionResult.InvalidData;
 
             var existingRole = await _roleRepo.GetRoleByIDAsync(id);
             if (existingRole == null)
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
 
             Mapping.RolesMap.ToEntity(role, existingRole);
 
             if (!await _roleRepo.UpdateRoleAsync(existingRole))
-                return Enums.ActionResult.Error;
+                return ActionResultEnum.ActionResult.Error;
 
-            return Enums.ActionResult.Success;
+            return ActionResultEnum.ActionResult.Success;
         }
 
         public async Task<List<RoleResponse>> GetAllRolesAsync()
@@ -65,19 +65,19 @@ namespace BusinessLogicLayer.Services
             return roles.Select(RolesMap.ToReadDTO).ToList();
         }
 
-        public async Task<Enums.ActionResult> DeleteRoleByIDAsync(int id)
+        public async Task<ActionResultEnum.ActionResult> DeleteRoleByIDAsync(int id)
         {
             if (id < 0)
-                return Enums.ActionResult.InvalidData;
+                return ActionResultEnum.ActionResult.InvalidData;
 
             var existingRole = await _roleRepo.GetRoleByIDAsync(id);
             if (existingRole == null)
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
 
             if (!await _roleRepo.DeleteRoleAsync(id))
-                return Enums.ActionResult.Error;
+                return ActionResultEnum.ActionResult.Error;
 
-            return Enums.ActionResult.Success;
+            return ActionResultEnum.ActionResult.Success;
         }
     }
 }

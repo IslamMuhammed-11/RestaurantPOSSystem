@@ -105,9 +105,9 @@ namespace API_Layer.Controllers
 
             return result switch
             {
-                Enums.ActionResult.InvalidData => BadRequest("Invalid data"),
-                Enums.ActionResult.NotFound => NotFound("User not found"),
-                Enums.ActionResult.Success => NoContent(),
+                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
+                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
+                ActionResultEnum.ActionResult.Success => NoContent(),
                 _ => StatusCode(500)
             };
         }
@@ -126,9 +126,9 @@ namespace API_Layer.Controllers
             var result = await _userService.DeleteUserByIDAsync(id);
             return result switch
             {
-                Enums.ActionResult.InvalidData => BadRequest("Invalid data"),
-                Enums.ActionResult.NotFound => NotFound("User not found"),
-                Enums.ActionResult.Success => NoContent(),
+                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
+                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
+                ActionResultEnum.ActionResult.Success => NoContent(),
                 _ => StatusCode(500)
             };
         }
@@ -147,10 +147,10 @@ namespace API_Layer.Controllers
             var result = await _userService.DeactivateUserAsync(id);
             return result switch
             {
-                Enums.ActionResult.InvalidData => BadRequest("Invalid data"),
-                Enums.ActionResult.NotFound => NotFound("User not found"),
-                Enums.ActionResult.AlreadyInactive => BadRequest("User is already inactive"),
-                Enums.ActionResult.Success => NoContent(),
+                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
+                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
+                ActionResultEnum.ActionResult.AlreadyInactive => BadRequest("User is already inactive"),
+                ActionResultEnum.ActionResult.Success => NoContent(),
                 _ => StatusCode(500)
             };
         }
@@ -169,10 +169,10 @@ namespace API_Layer.Controllers
             var result = await _userService.ActivateUserAsync(id);
             return result switch
             {
-                Enums.ActionResult.InvalidData => BadRequest("Invalid data"),
-                Enums.ActionResult.NotFound => NotFound("User not found"),
-                Enums.ActionResult.AlreadyActive => BadRequest("User is already active"),
-                Enums.ActionResult.Success => NoContent(),
+                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
+                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
+                ActionResultEnum.ActionResult.AlreadyActive => BadRequest("User is already active"),
+                ActionResultEnum.ActionResult.Success => NoContent(),
                 _ => StatusCode(500)
             };
         }
@@ -197,11 +197,11 @@ namespace API_Layer.Controllers
 
             return result switch
             {
-                Enums.ActionResult.InvalidData => BadRequest("Invalid data"),
-                Enums.ActionResult.NotFound => NotFound("User not found"),
-                Enums.ActionResult.InvalidPassword => BadRequest("Invalid current password"),
-                Enums.ActionResult.WeakPassword => BadRequest("New password does not meet strength requirements"),
-                Enums.ActionResult.Success => NoContent(),
+                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
+                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
+                ActionResultEnum.ActionResult.InvalidPassword => BadRequest("Invalid current password"),
+                ActionResultEnum.ActionResult.WeakPassword => BadRequest("New password does not meet strength requirements"),
+                ActionResultEnum.ActionResult.Success => NoContent(),
                 _ => StatusCode(500)
             };
         }

@@ -9,8 +9,8 @@ namespace DataAccessLayer.Entites
     public class RoleEntity
     {
         public int RoleID { get; set; }
-        public required string RoleName { get; set; }
-        public required short Premission { get; set; }
+        public string RoleName { get; set; }
+        public short Premission { get; set; }
 
         public bool isValid() =>
             !string.IsNullOrEmpty(RoleName);

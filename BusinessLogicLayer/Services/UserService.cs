@@ -70,102 +70,102 @@ namespace BusinessLogicLayer.Services
             return UserMap.ToReadDTOWithPasswordHash(userEntity);
         }
 
-        public async Task<Enums.ActionResult> UpdateUsernameAsync(int id, UpdateUserRequest user)
+        public async Task<ActionResultEnum.ActionResult> UpdateUsernameAsync(int id, UpdateUserRequest user)
         {
             if (id <= 0)
-                return Enums.ActionResult.InvalidData;
+                return ActionResultEnum.ActionResult.InvalidData;
 
             var existingUser = await _userRepo.GetUserByIDAsync(id);
 
             if (existingUser is null)
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
 
             if (!UserMap.ToEntity(user, existingUser))
-                return Enums.ActionResult.Error;
+                return ActionResultEnum.ActionResult.Error;
 
             if (!await _userRepo.UpdateUserAsync(existingUser))
-                return Enums.ActionResult.DBError;
+                return ActionResultEnum.ActionResult.DBError;
 
-            return Enums.ActionResult.Success;
+            return ActionResultEnum.ActionResult.Success;
         }
 
-        public async Task<Enums.ActionResult> DeleteUserByIDAsync(int id)
+        public async Task<ActionResultEnum.ActionResult> DeleteUserByIDAsync(int id)
         {
             if (id <= 0)
-                return Enums.ActionResult.InvalidData;
+                return ActionResultEnum.ActionResult.InvalidData;
 
             if (!await _userRepo.DoesUserExistAsync(id))
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
 
             if (!await _userRepo.DeleteUserAsync(id))
-                return Enums.ActionResult.DBError;
+                return ActionResultEnum.ActionResult.DBError;
 
-            return Enums.ActionResult.Success;
+            return ActionResultEnum.ActionResult.Success;
         }
 
-        public async Task<Enums.ActionResult> DeactivateUserAsync(int id)
+        public async Task<ActionResultEnum.ActionResult> DeactivateUserAsync(int id)
         {
             if (id <= 0)
-                return Enums.ActionResult.InvalidData;
+                return ActionResultEnum.ActionResult.InvalidData;
 
             var existingUser = await _userRepo.GetUserByIDAsync(id);
 
             if (existingUser is null)
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
 
             if (!existingUser.IsActive)
-                return Enums.ActionResult.AlreadyInactive;
+                return ActionResultEnum.ActionResult.AlreadyInactive;
 
             if (!await _userRepo.DeactivateUserAsync(id))
-                return Enums.ActionResult.DBError;
+                return ActionResultEnum.ActionResult.DBError;
 
-            return Enums.ActionResult.Success;
+            return ActionResultEnum.ActionResult.Success;
         }
 
-        public async Task<Enums.ActionResult> ActivateUserAsync(int id)
+        public async Task<ActionResultEnum.ActionResult> ActivateUserAsync(int id)
         {
             if (id <= 0)
-                return Enums.ActionResult.InvalidData;
+                return ActionResultEnum.ActionResult.InvalidData;
 
             var existingUser = await _userRepo.GetUserByIDAsync(id);
 
             if (existingUser is null)
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
 
             if (existingUser.IsActive)
-                return Enums.ActionResult.AlreadyActive;
+                return ActionResultEnum.ActionResult.AlreadyActive;
 
             if (!await _userRepo.ActivateUserAsync(id))
-                return Enums.ActionResult.DBError;
+                return ActionResultEnum.ActionResult.DBError;
 
-            return Enums.ActionResult.Success;
+            return ActionResultEnum.ActionResult.Success;
         }
 
-        public async Task<Enums.ActionResult> UpdatePassword(int id, string newPassword, string Passoword)
+        public async Task<ActionResultEnum.ActionResult> UpdatePassword(int id, string newPassword, string Passoword)
         {
             if (id <= 0)
-                return Enums.ActionResult.InvalidData;
+                return ActionResultEnum.ActionResult.InvalidData;
 
             var existingUser = await _userRepo.GetUserByIDAsync(id);
 
             if (existingUser is null)
-                return Enums.ActionResult.NotFound;
+                return ActionResultEnum.ActionResult.NotFound;
 
             if (!existingUser.IsActive)
-                return Enums.ActionResult.InActiveUser;
+                return ActionResultEnum.ActionResult.InActiveUser;
 
             if (!BCrypt.Net.BCrypt.Verify(Passoword, existingUser.PasswordHash))
-                return Enums.ActionResult.InvalidPassword;
+                return ActionResultEnum.ActionResult.InvalidPassword;
 
             if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-                return Enums.ActionResult.WeakPassword;
+                return ActionResultEnum.ActionResult.WeakPassword;
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
             if (!await _userRepo.UpdatePasswordAsync(id, hashedPassword))
-                return Enums.ActionResult.DBError;
+                return ActionResultEnum.ActionResult.DBError;
 
-            return Enums.ActionResult.Success;
+            return ActionResultEnum.ActionResult.Success;
         }
 
         public async Task<bool> IsUserValid(int UserId)

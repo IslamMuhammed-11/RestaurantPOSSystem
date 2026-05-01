@@ -7,19 +7,19 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API_Layer.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [Route("api/roles")]
     [ApiController]
-    public class RolesControllers : ControllerBase
+    public class RolesController : ControllerBase
     {
         private readonly IRolesService _rolesService;
 
-        public RolesControllers(IRolesService rolesService)
+        public RolesController(IRolesService rolesService)
         {
             _rolesService = rolesService;
         }
 
-        [HttpGet("All Roles")]
+        [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<RoleResponse>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -47,66 +47,66 @@ namespace API_Layer.Controllers
             return Ok(role);
         }
 
-        [HttpPost("Add New Role")]
-        [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateRoleRequest))]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AddNewRoleAsync(CreateRoleRequest role)
-        {
-            if (role == null || !role.IsValid())
-                return BadRequest("Invalid role data");
+        //[HttpPost("Add New Role")]
+        //[ProducesResponseType(StatusCodes.Status201Created, Type = typeof(CreateRoleRequest))]
+        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        //public async Task<IActionResult> AddNewRoleAsync(CreateRoleRequest role)
+        //{
+        //    if (role == null || !role.IsValid())
+        //        return BadRequest("Invalid role data");
 
-            int? ID = await _rolesService.AddNewRoleAsync(role);
-            if (ID == null)
-                return StatusCode(500);
+        //    int? ID = await _rolesService.AddNewRoleAsync(role);
+        //    if (ID == null)
+        //        return StatusCode(500);
 
-            role.SetID(ID.Value);
+        //    role.SetID(ID.Value);
 
-            return CreatedAtAction("GetRoleByID", new { id = ID }, role);
-        }
+        //    return CreatedAtAction("GetRoleByID", new { id = ID }, role);
+        //}
 
-        [HttpPut("Update/{id}", Name = "UpdateRole")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateRoleAsync(int id, UpdateRoleRequest role)
-        {
-            if (id <= 0 || role == null)
-                return BadRequest("Invalid data");
+        //[HttpPut("Update/{id}", Name = "UpdateRole")]
+        //[ProducesResponseType(StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        //public async Task<IActionResult> UpdateRoleAsync(int id, UpdateRoleRequest role)
+        //{
+        //    if (id <= 0 || role == null)
+        //        return BadRequest("Invalid data");
 
-            var result = await _rolesService.UpdateRoleAsync(id, role);
+        //    var result = await _rolesService.UpdateRoleAsync(id, role);
 
-            return result switch
-            {
-                Enums.ActionResult.NotFound => NotFound("Role not found"),
-                Enums.ActionResult.InvalidData => BadRequest("Invalid role data"),
-                Enums.ActionResult.Success => Ok("Role updated successfully"),
-                _ => StatusCode(500)
-            };
-        }
+        //    return result switch
+        //    {
+        //        ActionResultEnum.ActionResult.NotFound => NotFound("Role not found"),
+        //        ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid role data"),
+        //        ActionResultEnum.ActionResult.Success => Ok("Role updated successfully"),
+        //        _ => StatusCode(500)
+        //    };
+        //}
 
-        [HttpDelete("Delete/{id}", Name = "DeleteRoleByID")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeleteRoleByIDAsync(int id)
-        {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+        //[HttpDelete("Delete/{id}", Name = "DeleteRoleByID")]
+        //[ProducesResponseType(StatusCodes.Status204NoContent)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        //public async Task<IActionResult> DeleteRoleByIDAsync(int id)
+        //{
+        //    if (id <= 0)
+        //        return BadRequest("Invalid ID");
 
-            var result = await _rolesService.DeleteRoleByIDAsync(id);
+        //    var result = await _rolesService.DeleteRoleByIDAsync(id);
 
-            return result switch
-            {
-                Enums.ActionResult.NotFound => NotFound("Role not found"),
-                Enums.ActionResult.Success => NoContent(),
-                _ => StatusCode(500)
-            };
-        }
+        //    return result switch
+        //    {
+        //        ActionResultEnum.ActionResult.NotFound => NotFound("Role not found"),
+        //        ActionResultEnum.ActionResult.Success => NoContent(),
+        //        _ => StatusCode(500)
+        //    };
+        //}
     }
 }

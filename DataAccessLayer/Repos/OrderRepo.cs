@@ -82,7 +82,7 @@ namespace DataAccessLayer.Repos
             {
                 DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
 
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return new OrderAndItemsEntity
@@ -137,7 +137,7 @@ namespace DataAccessLayer.Repos
             {
                 DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
 
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return null;
@@ -188,7 +188,7 @@ namespace DataAccessLayer.Repos
             catch (SqlException ex)
             {
                 DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return orders;
@@ -227,16 +227,16 @@ namespace DataAccessLayer.Repos
             {
                 throw ex.Number switch
                 {
-                    50001 => new BusinessException("Invalid ProductID", 50001, Enums.ActionResult.InvalidData),
-                    50002 => new BusinessException("Product Isn't Available", 50002, Enums.ActionResult.Conflict),
-                    50003 => new BusinessException("No Order Items Sent!", 50003, Enums.ActionResult.InvalidData),
-                    50004 => new BusinessException("Invalid Quantity", 50004, Enums.ActionResult.InvalidData),
-                    50005 => new BusinessException("Table not available", 50005, Enums.ActionResult.Conflict),
-                    50006 => new BusinessException("Invalid TableID", 50006, Enums.ActionResult.InvalidData),
-                    50007 => new BusinessException("Invalid Order Type", 50007, Enums.ActionResult.InvalidData),
-                    50009 => new BusinessException("TableID is required for DineIn", 50009, Enums.ActionResult.InvalidData),
+                    50001 => new BusinessException("Invalid ProductID", 50001, ActionResultEnum.ActionResult.InvalidData),
+                    50002 => new BusinessException("Product Isn't Available", 50002, ActionResultEnum.ActionResult.Conflict),
+                    50003 => new BusinessException("No Order Items Sent!", 50003, ActionResultEnum.ActionResult.InvalidData),
+                    50004 => new BusinessException("Invalid Quantity", 50004, ActionResultEnum.ActionResult.InvalidData),
+                    50005 => new BusinessException("Table not available", 50005, ActionResultEnum.ActionResult.Conflict),
+                    50006 => new BusinessException("Invalid TableID", 50006, ActionResultEnum.ActionResult.InvalidData),
+                    50007 => new BusinessException("Invalid Order Type", 50007, ActionResultEnum.ActionResult.InvalidData),
+                    50009 => new BusinessException("TableID is required for DineIn", 50009, ActionResultEnum.ActionResult.InvalidData),
 
-                    _ => new BusinessException("Database error occurred", 99999, Enums.ActionResult.DBError)
+                    _ => new BusinessException("Database error occurred", 99999, ActionResultEnum.ActionResult.DBError)
                 };
             }
             if (param.Value == DBNull.Value)
@@ -274,7 +274,7 @@ namespace DataAccessLayer.Repos
             {
                 DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
 
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return RowsAffected > 0;
@@ -307,7 +307,7 @@ namespace DataAccessLayer.Repos
             {
                 DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
 
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return RowsAffected > 0;
@@ -334,7 +334,7 @@ namespace DataAccessLayer.Repos
             {
                 //DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
 
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
             return RowsAffected > 0;
         }

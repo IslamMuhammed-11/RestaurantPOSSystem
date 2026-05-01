@@ -6,14 +6,11 @@ using DataAccessLayer.Repos;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Build.Framework;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.VisualStudio.Web.CodeGeneration.Design;
-using NuGet.Packaging.Signing;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -112,7 +109,10 @@ builder.Services.AddAuthorization(options =>
          policy.AddRequirements(new UserOwnerOrSuperOrAdminRequirement()));
      });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -178,9 +178,16 @@ builder.Services.AddScoped<IPaymentMethodRepo, PaymentMethodRepo>();
 builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
 builder.Services.AddScoped<IRefundedPaymentsRepo, RefundedPaymentsRep>();
 builder.Services.AddScoped<IRefundedPaymentsService, RefundedPaymentsService>();
-
+builder.Services.AddScoped<IProductSalesRepo, ProductSalesRepo>();
+builder.Services.AddScoped<IProductSalesService, ProductSalesService>();
+builder.Services.AddScoped<IDailySalesRepo, DailySalesRepo>();
+builder.Services.AddScoped<IDailySalesService, DailySalesService>();
 //------------------------------------//
-builder.Services.AddMediatR(typeof(Program));
+//builder.Services.AddMediatR(typeof(Program));
+
+//builder.Services.AddMediatR((typeof(BusinessLogicLayer.Events.PaymentCreated.PaymentCreatedEvent).Assembly));
+
+builder.Services.AddMediatR((typeof(BusinessLogicLayer.Handlers.UpdateDailySalesHandler).Assembly));
 
 builder.Services.AddCors(options =>
 options.AddPolicy("RestaurantApiCorsPolicy", policy =>

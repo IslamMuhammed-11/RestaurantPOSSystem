@@ -28,24 +28,24 @@ namespace BusinessLogicLayer.Services
         public async Task<int?> AddNewItemAsync(CreateOrderItemRequest item, int orderId)
         {
             if (item == null || !item.IsValid())
-                throw new BusinessException("Invalid item data.", 80000, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Invalid item data.", 80000, ActionResultEnum.ActionResult.InvalidData);
 
             if (!await _productService.IsProductAvailableAsync(item.ProductID))
-                throw new BusinessException("Product Isn't Available Or Doesn't Exist", 80002, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Product Isn't Available Or Doesn't Exist", 80002, ActionResultEnum.ActionResult.InvalidData);
 
             var order = await _orderService.GetOrderByIdAsync(orderId);
 
             if (order == null)
-                throw new BusinessException("Order Not Found!", 80004, Enums.ActionResult.NotFound);
+                throw new BusinessException("Order Not Found!", 80004, ActionResultEnum.ActionResult.NotFound);
 
             if (!_CheckOrderStatus(order))
-                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, Enums.ActionResult.Conflict);
+                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, ActionResultEnum.ActionResult.Conflict);
 
             var entity = ItemMap.ToEntity(item, orderId);
 
             int? id = await _itemRepo.AddNewItemAsync(entity);
             if (!id.HasValue)
-                throw new BusinessException("Failed to add item.", 80001, Enums.ActionResult.DBError);
+                throw new BusinessException("Failed to add item.", 80001, ActionResultEnum.ActionResult.DBError);
 
             return id;
         }
@@ -53,7 +53,7 @@ namespace BusinessLogicLayer.Services
         public async Task<OrderItemResponse?> GetItemByIdAsync(int id)
         {
             if (id <= 0)
-                throw new BusinessException("Invalid item ID.", 80000, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Invalid item ID.", 80000, ActionResultEnum.ActionResult.InvalidData);
 
             var entity = await _itemRepo.GetItemByIdAsync(id);
             if (entity == null)
@@ -65,25 +65,25 @@ namespace BusinessLogicLayer.Services
         public async Task<bool> UpdateItemsAsync(UpdateOrderItemRequest item)
         {
             if (item == null || !item.IsValid())
-                throw new BusinessException("Invalid item data.", 80000, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Invalid item data.", 80000, ActionResultEnum.ActionResult.InvalidData);
 
             var existing = await _itemRepo.GetItemByIdAsync(item.ItemID);
             if (existing == null)
-                throw new BusinessException("Item not found.", 80001, Enums.ActionResult.NotFound);
+                throw new BusinessException("Item not found.", 80001, ActionResultEnum.ActionResult.NotFound);
 
             if (item.ProductID.HasValue)
             {
                 if (!await _productService.IsProductAvailableAsync(item.ProductID.Value))
-                    throw new BusinessException("Product Isn't Available Or Doesn't Exist", 80002, Enums.ActionResult.InvalidData);
+                    throw new BusinessException("Product Isn't Available Or Doesn't Exist", 80002, ActionResultEnum.ActionResult.InvalidData);
             }
 
             bool ok = ItemMap.ToEntity(item, existing);
             if (!ok)
-                throw new BusinessException("Invalid item data.", 80000, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Invalid item data.", 80000, ActionResultEnum.ActionResult.InvalidData);
 
             bool updated = await _itemRepo.UpdateItemsAsync(existing);
             if (!updated)
-                throw new BusinessException("Failed to update item.", 80002, Enums.ActionResult.DBError);
+                throw new BusinessException("Failed to update item.", 80002, ActionResultEnum.ActionResult.DBError);
 
             return true;
         }
@@ -91,19 +91,19 @@ namespace BusinessLogicLayer.Services
         public async Task<bool> UpdateQuantityAsync(UpdateOrderItemQuantityRequest quantity, int orderID, int ItemId)
         {
             if (quantity.Quantity <= 0)
-                throw new BusinessException($"The sent quantity isn't valid {quantity.Quantity}", 80001, Enums.ActionResult.InvalidData);
+                throw new BusinessException($"The sent quantity isn't valid {quantity.Quantity}", 80001, ActionResultEnum.ActionResult.InvalidData);
 
             var orderAndItems = await _orderService.GetOrderAndItemsByIdAsync(orderID);
 
             if (orderAndItems.Order == null)
-                throw new BusinessException($"Order With This ID = {orderID} Was Not Found", 8050, Enums.ActionResult.NotFound);
+                throw new BusinessException($"Order With This ID = {orderID} Was Not Found", 8050, ActionResultEnum.ActionResult.NotFound);
 
             if (!_CheckOrderStatus(orderAndItems.Order))
-                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, Enums.ActionResult.Conflict);
+                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, ActionResultEnum.ActionResult.Conflict);
 
             bool itemExist = orderAndItems.Items != null && orderAndItems.Items.Any(s => s.ItemID == ItemId);
             if (!itemExist)
-                throw new BusinessException($"Item With This ID = {ItemId} Was Not Found In This Order {orderID}", 8050, Enums.ActionResult.NotFound);
+                throw new BusinessException($"Item With This ID = {ItemId} Was Not Found In This Order {orderID}", 8050, ActionResultEnum.ActionResult.NotFound);
 
             var ItemEntity = new ItemsEntity
             {
@@ -117,7 +117,7 @@ namespace BusinessLogicLayer.Services
             bool isUpdated = await _itemRepo.UpdateQuantityAsync(ItemEntity);
 
             if (!isUpdated)
-                throw new BusinessException("an unexpected error occured", 99999, Enums.ActionResult.DBError);
+                throw new BusinessException("an unexpected error occured", 99999, ActionResultEnum.ActionResult.DBError);
 
             return true;
         }
@@ -125,23 +125,23 @@ namespace BusinessLogicLayer.Services
         public async Task<bool> DeleteItemsAsync(int orderId, int ItemId)
         {
             if (ItemId <= 0)
-                throw new BusinessException("Invalid item ID.", 80000, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Invalid item ID.", 80000, ActionResultEnum.ActionResult.InvalidData);
 
             var orderAndItems = await _orderService.GetOrderAndItemsByIdAsync(orderId);
 
             if (orderAndItems.Order == null)
-                throw new BusinessException($"Order with this ID {orderId} was not found", 80052, Enums.ActionResult.NotFound);
+                throw new BusinessException($"Order with this ID {orderId} was not found", 80052, ActionResultEnum.ActionResult.NotFound);
 
             if (!_CheckOrderStatus(orderAndItems.Order))
-                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, Enums.ActionResult.Conflict);
+                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, ActionResultEnum.ActionResult.Conflict);
 
             bool itemExist = orderAndItems.Items != null && orderAndItems.Items.Select(s => s.ItemID == ItemId).Any();
             if (!itemExist)
-                throw new BusinessException("Item not found.", 80001, Enums.ActionResult.NotFound);
+                throw new BusinessException("Item not found.", 80001, ActionResultEnum.ActionResult.NotFound);
 
             bool deleted = await _itemRepo.DeleteItemsAsync(ItemId);
             if (!deleted)
-                throw new BusinessException("Failed to delete item.", 80002, Enums.ActionResult.DBError);
+                throw new BusinessException("Failed to delete item.", 80002, ActionResultEnum.ActionResult.DBError);
 
             return true;
         }

@@ -11,8 +11,6 @@ namespace DataAccessLayer.Interfaces
     {
         public Task<bool> LogDailySales(decimal amount);
 
-        public Task<bool> LogProductSales(int orderId);
-
         public Task<DailySalesEntity?> SalesDetails(DateOnly from, DateOnly to);
 
         public Task<SalesComparisonEntity> SalesComparison(DateOnly currentStart, DateOnly currentEnd,

@@ -46,7 +46,7 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
             }
             return null;
         }
@@ -76,7 +76,7 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
             }
 
             return categories;
@@ -108,7 +108,7 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
             }
 
             if (param.Value == DBNull.Value)
@@ -140,7 +140,7 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
             }
 
             return RowsAffected > 0;
@@ -165,7 +165,7 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
             }
 
             return RowsAffected > 0;
@@ -189,7 +189,7 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
             }
             return false;
         }

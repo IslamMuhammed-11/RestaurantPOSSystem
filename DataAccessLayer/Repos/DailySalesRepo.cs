@@ -46,36 +46,7 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
-            }
-
-            return RowsAffected > 0;
-        }
-
-        //-------------This is a ProductSalesRepo Method-------------//
-        public async Task<bool> LogProductSales(int orderId)
-        {
-            using SqlConnection connection = new SqlConnection(_ConnString);
-            using SqlCommand cmd = new SqlCommand("SP_LogProductSales", connection);
-
-            cmd.CommandType = CommandType.StoredProcedure;
-
-            cmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = orderId;
-
-            int RowsAffected = 0;
-
-            try
-            {
-                await connection.OpenAsync();
-
-                object? result = await cmd.ExecuteScalarAsync();
-
-                if (result != null && int.TryParse(result.ToString(), out int ID))
-                    RowsAffected = ID;
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return RowsAffected > 0;
@@ -105,22 +76,27 @@ namespace DataAccessLayer.Repos
                 {
                     result.Current = new DailySalesEntity
                     {
-                        TotalOrders = (int)reader["TotalOrders"],
-                        Gross = Convert.ToDecimal(reader["TotalGross"])
+                        TotalOrders = reader["TotalOrders"] == DBNull.Value ? 0 : (int)reader["TotalOrders"],
+                        Gross = reader["TotalGross"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["TotalGross"])
                     };
 
                     await reader.NextResultAsync();
 
-                    result.Prev = new DailySalesEntity
+                    if (reader.Read())
                     {
-                        TotalOrders = (int)reader["TotalOrders"],
-                        Gross = Convert.ToDecimal(reader["TotalGross"])
-                    };
+                        result.Prev = new DailySalesEntity
+                        {
+                            TotalOrders = reader["TotalOrders"] == DBNull.Value ? 0 : (int)reader["TotalOrders"],
+                            Gross = reader["TotalGross"] == DBNull.Value ? 0 : Convert.ToDecimal(reader["TotalGross"])
+                        };
+                    }
+                    else
+                        result.Prev = new DailySalesEntity();
                 }
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return result;
@@ -154,7 +130,7 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return null;
@@ -163,14 +139,14 @@ namespace DataAccessLayer.Repos
         public async Task<List<DailySalesEntity>> SalesTrend(DateOnly from, DateOnly to)
         {
             using SqlConnection connection = new SqlConnection(_ConnString);
-            using SqlCommand cmd = new SqlCommand("SP_SalesDetails", connection);
+            using SqlCommand cmd = new SqlCommand("SP_SalesTrend", connection);
 
             cmd.CommandType = CommandType.StoredProcedure;
 
             cmd.Parameters.Add("@From", SqlDbType.Date).Value = from;
             cmd.Parameters.Add("@To", SqlDbType.Date).Value = to;
 
-            List<DailySalesEntity> list = new();
+            List<DailySalesEntity> list = new List<DailySalesEntity>();
 
             try
             {
@@ -178,18 +154,18 @@ namespace DataAccessLayer.Repos
 
                 using SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
-                while (reader.Read())
+                while (await reader.ReadAsync())
                 {
                     list.Add(new DailySalesEntity
                     {
-                        Date = (DateOnly)reader["Date"],
+                        Date = DateOnly.FromDateTime((DateTime)reader["AtDay"]),
                         Gross = Convert.ToDecimal(reader["TotalSales"])
                     });
                 }
             }
-            catch (SqlException ex)
+            catch (Exception ex)
             {
-                throw new BusinessException(ex.Message, 99999, Enums.ActionResult.DBError);
+                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
             }
 
             return list;

@@ -13,6 +13,7 @@ namespace BusinessLogicLayer.Mapping
                 ItemID = entity.ItemID,
                 //ProductID = entity.ProductID,
                 ProductID = entity.ProductID,
+                ProductName = entity.ProductName,
                 OrderID = entity.OrderID,
                 Quantity = entity.Quantity,
                 Price = entity.Price

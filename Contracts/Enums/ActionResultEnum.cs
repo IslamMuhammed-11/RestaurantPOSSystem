@@ -1,6 +1,6 @@
 ﻿namespace Contracts.Enums
 {
-    public class Enums
+    public record ActionResultEnum
     {
         public enum ActionResult
         {

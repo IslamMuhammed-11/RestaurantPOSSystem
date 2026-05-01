@@ -45,22 +45,22 @@ namespace BusinessLogicLayer.Services
             var InvalidProducts = await _productService.ValidateProducts(order.Items.Select(x => x.ProductID).ToList());
 
             if (InvalidProducts.Any())
-                throw new BusinessException("Some Products Are Not Found Or Unavaliable", 50020, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Some Products Are Not Found Or Unavaliable", 50020, ActionResultEnum.ActionResult.InvalidData);
 
             // Ensure OrderType is valid and TableID is provided for DineIn orders
             if (order.OrderType < (int)OrderEntity.enOrderType.DineIn || order.OrderType > (int)OrderEntity.enOrderType.Delivery)
                 throw new ArgumentException("Invalid Order Type");
 
             if (order.OrderType == (int)OrderEntity.enOrderType.DineIn && !order.TableID.HasValue)
-                throw new BusinessException("Table is required for DineIn orders.", 50009, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Table is required for DineIn orders.", 50009, ActionResultEnum.ActionResult.InvalidData);
 
             if (order.TableID.HasValue && order.OrderType != (int)OrderEntity.enOrderType.DineIn)
-                throw new BusinessException("TableID should be null for non-DineIn orders.", 50011, Enums.ActionResult.InvalidData);
+                throw new BusinessException("TableID should be null for non-DineIn orders.", 50011, ActionResultEnum.ActionResult.InvalidData);
 
             bool IsUserValid = await _userService.IsUserValid(createByUserId);
             // Ensure UserID is valid and active
             if (!IsUserValid)
-                throw new BusinessException("Invalid UserID Does not Exist Or Inactive", 50010, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Invalid UserID Does not Exist Or Inactive", 50010, ActionResultEnum.ActionResult.InvalidData);
 
             // Map CreateOrderDTO to OrderEntity
             var NewOrder = Mapping.OrderMap.ToOrderEntity(order);
@@ -80,7 +80,7 @@ namespace BusinessLogicLayer.Services
             var orderAndItemsEntity = await _orderRepo.GetOrderAndItemsByOrderIDAsync(orderId);
 
             if (orderAndItemsEntity == null)
-                throw new BusinessException($"Order With This ID Was not found {orderId}", 90005, Enums.ActionResult.NotFound);
+                throw new BusinessException($"Order With This ID Was not found {orderId}", 90005, ActionResultEnum.ActionResult.NotFound);
 
             return Mapping.OrderMap.ToOrderAndItemsDTO(orderAndItemsEntity);
         }
@@ -90,7 +90,7 @@ namespace BusinessLogicLayer.Services
             var orderEntity = await _orderRepo.GetOrderByIDAsync(id);
 
             if (orderEntity == null)
-                throw new BusinessException($"Order with this Id was not found {id}", 90005, Enums.ActionResult.NotFound);
+                throw new BusinessException($"Order with this Id was not found {id}", 90005, ActionResultEnum.ActionResult.NotFound);
 
             return OrderMap.ToOrderResponse(orderEntity);
         }
@@ -111,27 +111,27 @@ namespace BusinessLogicLayer.Services
             var orderEntity = await _orderRepo.GetOrderByIDAsync(Id);
 
             if (orderEntity == null)
-                throw new BusinessException("Order Not Found", 50012, Enums.ActionResult.NotFound);
+                throw new BusinessException("Order Not Found", 50012, ActionResultEnum.ActionResult.NotFound);
 
             //Declaring the newStatus variable here to use it in both the validation and the repository call, ensuring consistency and avoiding redundant code.
             var newStatus = (OrderEntity.enOrderStatus)orderStatus;
             // Check if the order is already in the specified status to avoid unnecessary updates.
             if (orderEntity.OrderStatus == newStatus)
-                throw new BusinessException("Order is already in the specified status.", 50013, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Order is already in the specified status.", 50013, ActionResultEnum.ActionResult.InvalidData);
 
             // Checking if the order is cancelled, as cancelled orders should not have their status changed.
             if (orderEntity.OrderStatus == OrderEntity.enOrderStatus.Cancelled)
-                throw new BusinessException("Cannot change status of a cancelled order.", 50014, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Cannot change status of a cancelled order.", 50014, ActionResultEnum.ActionResult.InvalidData);
 
             // Validating the status transition rules to ensure that the order moves through the correct stages (Pending -> Preparing -> Ready).
             if (newStatus == OrderEntity.enOrderStatus.Ready && orderEntity.OrderStatus != OrderEntity.enOrderStatus.Preparing)
-                throw new BusinessException("Order must be in Preparing status before it can be marked as Ready.", 50015, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Order must be in Preparing status before it can be marked as Ready.", 50015, ActionResultEnum.ActionResult.InvalidData);
 
             if (newStatus == OrderEntity.enOrderStatus.Preparing && orderEntity.OrderStatus != OrderEntity.enOrderStatus.Pending)
-                throw new BusinessException("Order must be in Pending status before it can be marked as Preparing.", 50016, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Order must be in Pending status before it can be marked as Preparing.", 50016, ActionResultEnum.ActionResult.InvalidData);
 
             if (newStatus == OrderEntity.enOrderStatus.Cancelled && (orderEntity.OrderStatus == OrderEntity.enOrderStatus.Ready || orderEntity.OrderStatus == OrderEntity.enOrderStatus.Completed))
-                throw new BusinessException("Cannot cancel an order that is already Ready or Completed.", 50017, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Cannot cancel an order that is already Ready or Completed.", 50017, ActionResultEnum.ActionResult.InvalidData);
 
             return await _orderRepo.ChangeOrderStatus(Id, newStatus);
         }
@@ -140,16 +140,16 @@ namespace BusinessLogicLayer.Services
         {
             var orderEntity = await _orderRepo.GetOrderByIDAsync(Id);
             if (orderEntity == null)
-                throw new BusinessException("Order Not Found", 50012, Enums.ActionResult.NotFound);
+                throw new BusinessException("Order Not Found", 50012, ActionResultEnum.ActionResult.NotFound);
 
             if (orderEntity.OrderType != OrderEntity.enOrderType.DineIn)
-                throw new BusinessException("Only DineIn orders can have their table changed.", 50018, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Only DineIn orders can have their table changed.", 50018, ActionResultEnum.ActionResult.InvalidData);
 
             if (orderEntity.TableID == req.TableID)
-                throw new BusinessException("Cannot Change To The Same Table", 50019, Enums.ActionResult.InvalidData);
+                throw new BusinessException("Cannot Change To The Same Table", 50019, ActionResultEnum.ActionResult.InvalidData);
 
             if (orderEntity.OrderStatus == OrderEntity.enOrderStatus.Cancelled || orderEntity.OrderStatus == OrderEntity.enOrderStatus.Completed)
-                throw new BusinessException("Order is cancelled or completed", 50020, Enums.ActionResult.Conflict);
+                throw new BusinessException("Order is cancelled or completed", 50020, ActionResultEnum.ActionResult.Conflict);
 
             return await _orderRepo.ChangeTable(Id, req.TableID);
         }
