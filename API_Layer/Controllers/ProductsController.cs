@@ -1,12 +1,10 @@
 ﻿using API_Layer.Mapping;
 using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.ProductDTOs;
-using Contracts.Enums;
-using Contracts.Exceptions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Contracts.DTOs.BaseResponse;
 
 namespace API_Layer.Controllers
 {
@@ -60,7 +58,9 @@ namespace API_Layer.Controllers
         {
             var result = await _productService.AddNewProductAsync(product);
 
-            return ResultMappingExtensions.ToActionResult(result);
+            if (!result.IsSuccess)
+                return ResultMappingExtensions.ToActionResult(result);
+            return CreatedAtRoute("GetProductByID", new { id = result.Value.ProductID }, ApiResponse<ProductResponse>.Success(result.Value));
         }
 
         [HttpPut("{id}", Name = "UpdateProduct")]

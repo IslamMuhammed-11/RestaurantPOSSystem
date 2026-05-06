@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Contracts.DTOs.BaseResponse;
 
 namespace API_Layer.Controllers
 {
@@ -64,7 +65,7 @@ namespace API_Layer.Controllers
             if (!result.IsSuccess)
                 return ResultMappingExtensions.ToActionResult(result);
 
-            return CreatedAtRoute("GetTableByID", new { id = result.Value.TableID }, result.Value);
+            return CreatedAtRoute("GetTableByID", new { id = result.Value.TableID }, ApiResponse<TableResponse>.Success(result.Value));
         }
 
         [HttpPut("{id}", Name = "UpdateTable")]

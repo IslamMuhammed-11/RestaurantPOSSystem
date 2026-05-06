@@ -3,6 +3,7 @@ using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.CustomerDTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Contracts.DTOs.BaseResponse;
 
 namespace API_Layer.Controllers
 {
@@ -53,7 +54,7 @@ namespace API_Layer.Controllers
             if (!result.IsSuccess)
                 return Mapping.ResultMappingExtensions.ToActionResult(result);
 
-            return CreatedAtRoute("GetCustomerByID", new { id = result.Value.CustomerID }, result.Value);
+            return CreatedAtRoute("GetCustomerByID", new { id = result.Value.CustomerID }, ApiResponse<CustomerResponse>.Success(result.Value));
         }
 
         [HttpPut("{id}/update", Name = "UpdateCustomer")]

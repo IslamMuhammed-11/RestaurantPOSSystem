@@ -5,6 +5,7 @@ using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Contracts.DTOs.BaseResponse;
 
 namespace API_Layer.Controllers
 {
@@ -65,7 +66,7 @@ namespace API_Layer.Controllers
             if (!result.IsSuccess)
                 return ResultMappingExtensions.ToActionResult(result);
 
-            return CreatedAtRoute("GetUserByID", new { id = result.Value.UserID }, result.Value);
+            return CreatedAtRoute("GetUserByID", new { id = result.Value.UserID }, ApiResponse<UserResponse>.Success(result.Value));
         }
 
         //Policy Ownership

@@ -4,6 +4,7 @@ using Contracts.DTOs.PaymentMethodDTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Contracts.DTOs.BaseResponse;
 
 namespace API_Layer.Controllers
 {
@@ -61,7 +62,7 @@ namespace API_Layer.Controllers
             if (!result.IsSuccess)
                 return ResultMappingExtensions.ToActionResult(result);
 
-            return CreatedAtRoute("GetPaymentMethodByID", new { id = result.Value.MethodID }, result.Value);
+            return CreatedAtRoute("GetPaymentMethodByID", new { id = result.Value.MethodID }, ApiResponse<PaymentMethodResponse>.Success(result.Value));
         }
 
         [HttpPut("{id}", Name = "UpdatePaymentMethod")]

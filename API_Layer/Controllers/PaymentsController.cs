@@ -4,6 +4,7 @@ using Contracts.DTOs.PaymentDTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Contracts.DTOs.BaseResponse;
 
 namespace API_Layer.Controllers
 {
@@ -63,7 +64,7 @@ namespace API_Layer.Controllers
             if (!result.IsSuccess)
                 return ResultMappingExtensions.ToActionResult(result);
 
-            return CreatedAtRoute("GetPaymentByOrderID", new { orderId = result.Value.OrderID }, result.Value);
+            return CreatedAtRoute("GetPaymentByOrderID", new { orderId = result.Value.OrderID }, ApiResponse<PaymentResponse>.Success(result.Value));
         }
     }
 }
