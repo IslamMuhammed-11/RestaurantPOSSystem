@@ -6,6 +6,7 @@ using Contracts.Enums;
 using Contracts.Exceptions;
 using Contracts.Queries.ReportsQueries;
 using DataAccessLayer.Interfaces;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Services
 {
@@ -20,19 +21,16 @@ namespace BusinessLogicLayer.Services
 
         public async Task<bool> LogDailySalesAsync(decimal amount)
         {
-            if (amount < 0)
-                throw new BusinessException("Amount cannot be negative.", 90162, ActionResultEnum.ActionResult.InvalidData);
-
             return await _dailySalesRepo.LogDailySales(amount);
         }
 
-        public async Task<SalesComparisonResponse> GetSalesComparisonAsync(SalesComparisonQuery query)
+        public async Task<Result<SalesComparisonResponse>> GetSalesComparisonAsync(SalesComparisonQuery query)
         {
             if (query.currentStart > query.currentEnd)
-                throw new BusinessException("Current start date cannot be after current end date.", 90163, ActionResultEnum.ActionResult.InvalidData);
+                return Result<SalesComparisonResponse>.Failure(new Error("Current start date cannot be after current end date.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             if (query.prevStart > query.prevEnd)
-                throw new BusinessException("Previous start date cannot be after previous end date.", 90164, ActionResultEnum.ActionResult.InvalidData);
+                return Result<SalesComparisonResponse>.Failure(new Error("Previous start date cannot be after previous end date.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var entity = await _dailySalesRepo.SalesComparison(query.currentStart, query.currentEnd, query.prevStart, query.prevEnd);
 
@@ -91,19 +89,19 @@ namespace BusinessLogicLayer.Services
                                 GrowthMetrics.GrowthStatus.NoChange;
             }
 
-            return new SalesComparisonResponse
+            return Result<SalesComparisonResponse>.Success(new SalesComparisonResponse
             {
                 CurrentPeriod = current,
                 PreviousPeriod = prev,
                 Growth = growth,
                 Meta = meta
-            };
+            });
         }
 
-        public async Task<SalesDetailsResponse> GetSalesDetailsAsync(RangedQuery query)
+        public async Task<Result<SalesDetailsResponse>> GetSalesDetailsAsync(RangedQuery query)
         {
             if (!query.Validate())
-                throw new BusinessException("Invalid period.", 8546, ActionResultEnum.ActionResult.InvalidData);
+                return Result<SalesDetailsResponse>.Failure(new Error("Invalid period.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             query.Periodic = query.ResolvePeriod();
 
@@ -119,24 +117,24 @@ namespace BusinessLogicLayer.Services
                 TotalNet = entity.Net,
             };
 
-            return response;
+            return Result<SalesDetailsResponse>.Success(response);
         }
 
-        public async Task<SaleTrendsResponse> GetSalesTrendsAsync(PeriodicQuery query)
+        public async Task<Result<SaleTrendsResponse>> GetSalesTrendsAsync(PeriodicQuery query)
         {
             if (query.from > query.to)
-                throw new BusinessException("Start date cannot be after end date.", 90166, ActionResultEnum.ActionResult.InvalidData);
+                return Result<SaleTrendsResponse>.Failure(new Error("Start date cannot be after end date.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var list = await _dailySalesRepo.SalesTrend(query.from, query.to);
 
             if (list.Count == 0)
-                return new SaleTrendsResponse();
+                return Result<SaleTrendsResponse>.Success(new SaleTrendsResponse());
 
             SaleTrendsResponse response = new();
 
             response.Trends = DailySalesMap.MapToSalesTrendResponseList(list);
 
-            return response;
+            return Result<SaleTrendsResponse>.Success(response);
         }
 
         private decimal? _claculateGrowthPrecent(decimal currentGross, decimal previousGross)

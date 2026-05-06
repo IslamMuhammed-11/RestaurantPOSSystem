@@ -1,9 +1,7 @@
 ﻿using BusinessLogicLayer.Interfaces;
+using Contracts.DTOs.BaseResponse;
 using Contracts.DTOs.CategoryDTOs;
-using Contracts.Enums;
-using Contracts.Exceptions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API_Layer.Controllers
@@ -32,20 +30,9 @@ namespace API_Layer.Controllers
             if (id <= 0)
                 return BadRequest("Invalid ID");
 
-            try
-            {
-                var category = await _categoryService.GetCategoryByIDAsync(id);
-                return Ok(category);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            var category = await _categoryService.GetCategoryByIDAsync(id);
+
+            return Mapping.ResultMappingExtensions.ToActionResult(category);
         }
 
         [HttpGet()]
@@ -55,15 +42,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllCategoriesAsync()
         {
-            try
-            {
-                var categories = await _categoryService.GetAllCategoriesAsync();
-                return Ok(categories);
-            }
-            catch (BusinessException ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            var categories = await _categoryService.GetAllCategoriesAsync();
+
+            return Mapping.ResultMappingExtensions.ToActionResult(categories);
         }
 
         [HttpPost("create")]
@@ -74,27 +55,12 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> AddNewCategoryAsync(CreateCategoryRequest category)
         {
-            if (category == null || !category.IsValid())
-                return BadRequest("Invalid category data");
+            var result = await _categoryService.AddNewCategoryAsync(category);
 
-            try
-            {
-                int? id = await _categoryService.AddNewCategoryAsync(category);
-                if (id == null)
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create category");
+            if (!result.IsSuccess)
+                return Mapping.ResultMappingExtensions.ToActionResult(result);
 
-                category.SetID(id.Value);
-                return CreatedAtRoute("GetCategoryByID", new { id = id.Value }, category);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    ActionResultEnum.ActionResult.DBError => StatusCode(StatusCodes.Status500InternalServerError, ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return CreatedAtRoute("GetCategoryByID", new { id = result.Value }, ApiResponse<CategoryResponse>.Success(result.Value));
         }
 
         [HttpPut("{id}/update", Name = "UpdateCategory")]
@@ -106,25 +72,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> UpdateCategoryAsync(int id, UpdateCategoryRequest category)
         {
-            if (id <= 0 || category == null)
-                return BadRequest("Invalid data");
+            var result = await _categoryService.UpdateCategoryAsync(id, category);
 
-            try
-            {
-                bool updated = await _categoryService.UpdateCategoryAsync(id, category);
-                if (updated)
-                    return Ok("Category updated successfully");
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to update category");
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return Mapping.ResultMappingExtensions.ToActionResult(result, "Updated successfully");
         }
 
         [HttpDelete("{id}/delete", Name = "DeleteCategoryByID")]
@@ -136,25 +86,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteCategoryByIDAsync(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _categoryService.DeleteCategoryByIDAsync(id);
 
-            try
-            {
-                bool deleted = await _categoryService.DeleteCategoryByIDAsync(id);
-                if (deleted)
-                    return NoContent();
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to delete category");
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return Mapping.ResultMappingExtensions.ToActionResult(result, null, false);
         }
     }
 }

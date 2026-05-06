@@ -1,4 +1,5 @@
-﻿using BusinessLogicLayer.Interfaces;
+﻿using API_Layer.Mapping;
+using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.RolesDTOs;
 using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +27,8 @@ namespace API_Layer.Controllers
         public async Task<IActionResult> GetAllRolesAsync()
         {
             var roles = await _rolesService.GetAllRolesAsync();
-            return Ok(roles);
+
+            return ResultMappingExtensions.ToActionResult(roles);
         }
 
         [HttpGet("{id}", Name = "GetRoleByID")]
@@ -37,14 +39,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetRoleByIDAsync(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _rolesService.GetRoleByIDAsync(id);
 
-            var role = await _rolesService.GetRoleByIDAsync(id);
-            if (role == null)
-                return NotFound("Role not found");
-
-            return Ok(role);
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         //[HttpPost("Add New Role")]

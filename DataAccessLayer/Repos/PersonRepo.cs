@@ -1,13 +1,10 @@
-﻿using DataAccessLayer.Entites;
-using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Data;
-using Microsoft.Extensions.Configuration;
+﻿using Contracts.Exceptions;
+using DataAccessLayer.Entites;
 using DataAccessLayer.Interfaces;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using System.Data;
+
 namespace DataAccessLayer.Repos
 {
     public class PersonRepo : IPersonRepo
@@ -20,7 +17,7 @@ namespace DataAccessLayer.Repos
                 ?? throw new InvalidOperationException();
         }
 
-        public async  Task<PersonEntity?> GetPersonByIDAsync(int id)
+        public async Task<PersonEntity?> GetPersonByIDAsync(int id)
         {
             using SqlConnection connection =
                 new SqlConnection(_ConnString);
@@ -28,9 +25,9 @@ namespace DataAccessLayer.Repos
 
             cmd.CommandType = CommandType.StoredProcedure;
 
-           cmd.Parameters.AddWithValue("@PersonID", id);
+            cmd.Parameters.AddWithValue("@PersonID", id);
 
-           await connection.OpenAsync();
+            await connection.OpenAsync();
 
             using SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
@@ -52,48 +49,42 @@ namespace DataAccessLayer.Repos
                 return null;
         }
 
-        public async  Task<List<PersonEntity>> GetAllPeopleAsync()
+        public async Task<List<PersonEntity>> GetAllPeopleAsync()
         {
             List<PersonEntity> People = new List<PersonEntity>();
-            try
+
+            using SqlConnection connection =
+            new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetAllPeople", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                using SqlConnection connection =
-             new SqlConnection(_ConnString);
-                using SqlCommand cmd = new SqlCommand("SP_GetAllPeople", connection);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                People.Add(new PersonEntity
                 {
-                    People.Add(new PersonEntity
-                    {
-                        PersonID = (int)reader["PersonID"],
-                        FirstName = (string)reader["FirstName"],
-                        SecondName = (string)reader["SecondName"],
-                        ThirdName = (string)reader["ThirdName"],
-                        DateOfBirth = (DateTime)reader["DateOfBirth"],
-                        Gender = (bool)reader["Gender"],
-                        Phone = (string)reader["Phone"],
-                        Address = (string)reader["Address"]
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                    PersonID = (int)reader["PersonID"],
+                    FirstName = (string)reader["FirstName"],
+                    SecondName = (string)reader["SecondName"],
+                    ThirdName = (string)reader["ThirdName"],
+                    DateOfBirth = (DateTime)reader["DateOfBirth"],
+                    Gender = (bool)reader["Gender"],
+                    Phone = (string)reader["Phone"],
+                    Address = (string)reader["Address"]
+                });
             }
             return People;
         }
 
-        public async  Task<int?> AddNewPersonAsync(PersonEntity person)
+        public async Task<int?> AddNewPersonAsync(PersonEntity person)
         {
             if (person == null)
-                return null;            
-            
+                return null;
+
             using SqlConnection connection =
             new SqlConnection(_ConnString);
             using SqlCommand cmd = new SqlCommand("SP_AddNewPerson", connection);
@@ -107,29 +98,32 @@ namespace DataAccessLayer.Repos
             cmd.Parameters.AddWithValue("@Phone", person.Phone);
             cmd.Parameters.AddWithValue("@Address", person.Address);
             cmd.Parameters.AddWithValue("@Gender", person.Gender);
-            SqlParameter param = new  SqlParameter("@PersonID", SqlDbType.Int)
+            SqlParameter param = new SqlParameter("@PersonID", SqlDbType.Int)
             {
-
                 Direction = ParameterDirection.Output
             };
 
             cmd.Parameters.Add(param);
             try
             {
-
                 await connection.OpenAsync();
 
                 await cmd.ExecuteNonQueryAsync();
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return (int)param.Value;
         }
 
-        public async  Task<bool> UpdatePersonAsync(PersonEntity person)
+        public async Task<bool> UpdatePersonAsync(PersonEntity person)
         {
             if (person == null)
                 return false;
@@ -158,16 +152,20 @@ namespace DataAccessLayer.Repos
                 if (result != null && int.TryParse(result.ToString(), out int num))
                     RowsAffected = num;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
         }
 
-        public async  Task<bool> DeletePersonAsync(int PersonID)
+        public async Task<bool> DeletePersonAsync(int PersonID)
         {
             using SqlConnection connection =
             new SqlConnection(_ConnString);
@@ -186,13 +184,15 @@ namespace DataAccessLayer.Repos
 
                 if (result != null && int.TryParse(result.ToString(), out int num))
                     RowsAffected = num;
-
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
             return RowsAffected > 0;
         }

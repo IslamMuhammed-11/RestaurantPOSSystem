@@ -1,4 +1,6 @@
-﻿using BusinessLogicLayer.Interfaces;
+﻿using API_Layer.Mapping;
+using BusinessLogicLayer.Interfaces;
+using Contracts.DTOs;
 using Contracts.DTOs.AuthDTOs;
 using Contracts.DTOs.UserDTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -10,6 +12,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Contracts.DTOs.BaseResponse;
 
 namespace API_Layer.Controllers
 {
@@ -35,27 +38,37 @@ namespace API_Layer.Controllers
         {
             var user = await _userService.GetUserByUsernameAsync(request.Username);
 
-            if (user == null)
+            if (!user.IsSuccess || user.Value == null)
             {
                 var ip = HttpContext.Connection.RemoteIpAddress;
                 _logger.LogWarning("Login Faliure With Username = {username}, IP = {ip}", request.Username, ip);
-                return Unauthorized("Invalid Credentials");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Unauthorized",
+                    Detail = "Invalid Credentials",
+                    Status = 401
+                });
             }
 
-            bool isValidPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+            bool isValidPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.Value.PasswordHash);
 
             if (!isValidPassword)
             {
                 var ip = HttpContext.Connection.RemoteIpAddress;
                 _logger.LogWarning("Login Faliure Bad Password With Username = {username}, IP = {ip}", request.Username, ip);
-                return Unauthorized("Invalid Credentials");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Unauthorized",
+                    Detail = "Invalid Credentials",
+                    Status = 401
+                });
             }
 
             var claims = new[]
             {
-               new Claim( ClaimTypes.NameIdentifier , user.UserID.ToString()),
-               new Claim("username" , user.UserName),
-               new Claim(ClaimTypes.Role , user.Role)
+               new Claim( ClaimTypes.NameIdentifier , user.Value.UserID.ToString()),
+               new Claim("username" , user.Value.UserName),
+               new Claim(ClaimTypes.Role , user.Value.Role)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("THIS_IS_A_VERY_SECRET_KEY_123456"));
@@ -75,20 +88,27 @@ namespace API_Layer.Controllers
 
             var refreshToken = _GnerateRefreshToken();
 
-            user.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(refreshToken);
-            user.ExpiresAt = DateTime.Now.AddDays(7);
-            user.RevokedAt = null;
+            user.Value.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(refreshToken);
+            user.Value.ExpiresAt = DateTime.Now.AddDays(7);
+            user.Value.RevokedAt = null;
 
-            bool IsSaved = await _userService.SaveRefreshTokenAsync(user);
+            var IsSaved = await _userService.SaveRefreshTokenAsync(user.Value);
 
-            if (!IsSaved)
-                return StatusCode(500, "Error Occured While Loggin in");
+            if (!IsSaved.IsSuccess || !IsSaved.Value)
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "Internal Server Error",
+                    Detail = "Unexpected error occurred while Login",
+                    Status = 500
+                });
 
-            return Ok(new TokenResponse
+            var response = new TokenResponse
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
-            });
+            };
+
+            return Ok(ApiResponse<TokenResponse>.Success(response, "Login successful"));
         }
 
         [HttpPost("refresh")]
@@ -100,7 +120,7 @@ namespace API_Layer.Controllers
         {
             var user = await _userService.GetUserByUsernameAsync(request.Username);
 
-            if (user == null)
+            if (!user.IsSuccess || user.Value == null)
             {
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
 
@@ -108,10 +128,15 @@ namespace API_Layer.Controllers
                      "Refresh Attempt With a Invalid Username = {username} IP = {ip}"
                      , request.Username, ip);
 
-                return Unauthorized("Invalid Request");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Unauthorized",
+                    Detail = "Authentication is required",
+                    Status = 401
+                });
             }
 
-            if (user.RevokedAt.HasValue)
+            if (user.Value.RevokedAt.HasValue)
             {
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
 
@@ -119,10 +144,15 @@ namespace API_Layer.Controllers
                      "Refresh Attempt With a Revoked Token Username {username} IP = {ip}"
                      , request.Username, ip);
 
-                return Unauthorized("Refresh token is revoked");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Unauthorized",
+                    Detail = "Valid refresh token is required",
+                    Status = 401
+                });
             }
 
-            if (!user.ExpiresAt.HasValue || user.ExpiresAt.Value <= DateTime.UtcNow)
+            if (!user.Value.ExpiresAt.HasValue || user.Value.ExpiresAt.Value <= DateTime.UtcNow)
             {
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
 
@@ -130,10 +160,15 @@ namespace API_Layer.Controllers
                      "Refresh Attempt With a Expired Token Username = {username} IP = {ip}"
                      , request.Username, ip);
 
-                return Unauthorized("Refresh token is Expired");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Unauthorized",
+                    Detail = "Authentication is required",
+                    Status = 401
+                });
             }
 
-            bool isValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, user.RefreshTokenHash);
+            bool isValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, user.Value.RefreshTokenHash);
 
             if (!isValid)
             {
@@ -143,14 +178,19 @@ namespace API_Layer.Controllers
                      "Refresh Attempt With Invalid Token Username = {username} IP = {ip}"
                      , request.Username, ip);
 
-                return Unauthorized("Invalid refresh token");
+                return Unauthorized(new ProblemDetails
+                {
+                    Title = "Unauthorized",
+                    Detail = "Authentication is required",
+                    Status = 401
+                });
             }
 
             var claims = new[]
 {
-               new Claim( ClaimTypes.NameIdentifier , user.UserID.ToString()),
-               new Claim("username" , user.UserName),
-               new Claim(ClaimTypes.Role , user.Role)
+               new Claim( ClaimTypes.NameIdentifier , user.Value.UserID.ToString()),
+               new Claim("username" , user.Value.UserName),
+               new Claim(ClaimTypes.Role , user.Value.Role)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("THIS_IS_A_VERY_SECRET_KEY_123456"));
@@ -170,20 +210,27 @@ namespace API_Layer.Controllers
 
             var refreshToken = _GnerateRefreshToken();
 
-            user.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(refreshToken);
-            user.ExpiresAt = DateTime.Now.AddDays(7);
-            user.RevokedAt = null;
+            user.Value.RefreshTokenHash = BCrypt.Net.BCrypt.HashPassword(refreshToken);
+            user.Value.ExpiresAt = DateTime.Now.AddDays(7);
+            user.Value.RevokedAt = null;
 
-            bool isSaved = await _userService.SaveRefreshTokenAsync(user);
+            var isSaved = await _userService.SaveRefreshTokenAsync(user.Value);
 
-            if (!isSaved)
-                return StatusCode(500, "Unexpected error occuerd");
+            if (!isSaved.IsSuccess || !isSaved.IsSuccess)
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "Internal Server Error",
+                    Detail = "Unexpected error occurred while Login",
+                    Status = 500
+                });
 
-            return Ok(new TokenResponse
+            var response = new TokenResponse
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
-            });
+            };
+
+            return Ok(ApiResponse<TokenResponse>.Success(response));
         }
 
         [HttpPost("logout")]
@@ -194,20 +241,25 @@ namespace API_Layer.Controllers
         {
             var user = await _userService.GetUserByUsernameAsync(request.Username);
 
-            if (user == null)
+            if (!user.IsSuccess || user.Value == null)
                 return Ok();
 
-            bool isValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, user.RefreshTokenHash);
+            bool isValid = BCrypt.Net.BCrypt.Verify(request.RefreshToken, user.Value.RefreshTokenHash);
 
             if (!isValid)
                 return Ok();
 
-            bool Revoked = await _userService.RevokeToken(user.UserID);
+            var Revoked = await _userService.RevokeToken(user.Value.UserID);
 
-            if (!Revoked)
-                return StatusCode(500, "Unexpected error occured");
+            if (!Revoked.IsSuccess || !Revoked.Value)
+                return StatusCode(500, new ProblemDetails
+                {
+                    Title = "Internal Server Error",
+                    Detail = "Unexpected error occurred while Login",
+                    Status = 500
+                });
 
-            return Ok("Logged out successfully");
+            return Ok();
         }
 
         private static string _GnerateRefreshToken()

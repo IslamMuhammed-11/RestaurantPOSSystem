@@ -1,12 +1,15 @@
-﻿using BusinessLogicLayer.Interfaces;
+﻿using API_Layer.Mapping;
+using BusinessLogicLayer.Interfaces;
 using Contracts.Enums;
 using Contracts.Exceptions;
-using Microsoft.AspNetCore.Mvc;
 using Contracts.Queries.ReportsQueries;
-using Contracts.DTOs;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API_Layer.Controllers
 {
+    [Authorize(Roles = "SuperAdmin")]
     [Route("api/reports")]
     [ApiController]
     public class ReportsController : ControllerBase
@@ -21,88 +24,51 @@ namespace API_Layer.Controllers
         }
 
         [HttpGet("top-products")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetTopProductsAsync([FromQuery] RangedQuery query)
 
         {
-            try
-            {
-                var response = await _productsSalesService.GetTopProductsAsync(query);
+            var result = await _productsSalesService.GetTopProductsAsync(query);
 
-                return Ok(response);
-            }
-            catch (BusinessException ex)
-            {
-                if (ex.ErrorType == ActionResultEnum.ActionResult.InvalidData)
-                    return BadRequest(ex.Message);
-                else
-                    return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpGet("sales-comparison")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetSalesComparisonAsync([FromQuery] SalesComparisonQuery query)
         {
-            try
-            {
-                var response = await _dailySalesService.GetSalesComparisonAsync(query);
-
-                return Ok(response);
-            }
-            catch (BusinessException ex)
-            {
-                if (ex.ErrorType == ActionResultEnum.ActionResult.InvalidData)
-                    return BadRequest(ex.Message);
-                else
-                    return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            var result = await _dailySalesService.GetSalesComparisonAsync(query);
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpGet("sales-details")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetSalesDetails([FromQuery] RangedQuery query)
         {
-            try
-            {
-                var response = await _dailySalesService.GetSalesDetailsAsync(query);
+            var result = await _dailySalesService.GetSalesDetailsAsync(query);
 
-                return Ok(response);
-            }
-            catch (BusinessException ex)
-            {
-                if (ex.ErrorType == ActionResultEnum.ActionResult.InvalidData)
-                    return BadRequest(ex.Message);
-                else
-                    return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpGet("sales-trends")]
+        [EnableRateLimiting("UserLimiter")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetSaleTrends([FromQuery] PeriodicQuery query)
         {
-            try
-            {
-                var response = await _dailySalesService.GetSalesTrendsAsync(query);
+            var result = await _dailySalesService.GetSalesTrendsAsync(query);
 
-                return Ok(response);
-            }
-            catch (BusinessException ex)
-            {
-                if (ex.ErrorType == ActionResultEnum.ActionResult.InvalidData)
-                    return BadRequest(ex.Message);
-                else
-                    return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
     }
 }

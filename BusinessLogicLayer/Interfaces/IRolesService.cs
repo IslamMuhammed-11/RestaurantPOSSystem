@@ -6,19 +6,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Interfaces
 {
     public interface IRolesService
     {
-        Task<int?> AddNewRoleAsync(CreateRoleRequest role);
+        Task<Result<int>> AddNewRoleAsync(CreateRoleRequest role);
 
-        Task<ActionResultEnum.ActionResult> UpdateRoleAsync(int ID, UpdateRoleRequest role);
+        Task<Result<bool>> UpdateRoleAsync(int ID, UpdateRoleRequest role);
 
-        Task<RoleResponse?> GetRoleByIDAsync(int id);
+        Task<Result<RoleResponse>> GetRoleByIDAsync(int id);
 
-        Task<List<RoleResponse>> GetAllRolesAsync();
+        Task<Result<List<RoleResponse>>> GetAllRolesAsync();
 
-        Task<ActionResultEnum.ActionResult> DeleteRoleByIDAsync(int id);
+        Task<Result<bool>> DeleteRoleByIDAsync(int id);
     }
 }

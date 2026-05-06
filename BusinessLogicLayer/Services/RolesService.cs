@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Services
 {
@@ -20,64 +21,71 @@ namespace BusinessLogicLayer.Services
             _roleRepo = roleRepo;
         }
 
-        public async Task<int?> AddNewRoleAsync(CreateRoleRequest role)
+        public async Task<Result<int>> AddNewRoleAsync(CreateRoleRequest role)
         {
             if (role == null || !role.IsValid())
-                return null;
+                return Result<int>.Failure(new Error("Invalid role data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var roleEntity = RolesMap.ToEntity(role);
 
             int? ID = await _roleRepo.AddNewRoleAsync(roleEntity);
 
-            return ID;
+            if (!ID.HasValue)
+                return Result<int>.Failure(new Error("Failed to add new role.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            return Result<int>.Success(ID.Value);
         }
 
-        public async Task<RoleResponse?> GetRoleByIDAsync(int id)
+        public async Task<Result<RoleResponse>> GetRoleByIDAsync(int id)
         {
             if (id < 0)
-                return null;
+                return Result<RoleResponse>.Failure(new Error("Invalid role ID.", ErrorCodes.enErrorCodes.INVALID_DATA));
+
             var roleEntity = await _roleRepo.GetRoleByIDAsync(id);
             if (roleEntity == null)
-                return null;
-            return RolesMap.ToReadDTO(roleEntity);
+                return Result<RoleResponse>.Failure(new Error("Role not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
+
+            return Result<RoleResponse>.Success(RolesMap.ToReadDTO(roleEntity));
         }
 
-        public async Task<ActionResultEnum.ActionResult> UpdateRoleAsync(int id, UpdateRoleRequest role)
+        public async Task<Result<bool>> UpdateRoleAsync(int id, UpdateRoleRequest role)
         {
             if (role == null || id < 0)
-                return ActionResultEnum.ActionResult.InvalidData;
+                return Result<bool>.Failure(new Error("Invalid role data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existingRole = await _roleRepo.GetRoleByIDAsync(id);
             if (existingRole == null)
-                return ActionResultEnum.ActionResult.NotFound;
+                return Result<bool>.Failure(new Error("Role not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             Mapping.RolesMap.ToEntity(role, existingRole);
 
-            if (!await _roleRepo.UpdateRoleAsync(existingRole))
-                return ActionResultEnum.ActionResult.Error;
+            bool updated = await _roleRepo.UpdateRoleAsync(existingRole);
 
-            return ActionResultEnum.ActionResult.Success;
+            return Result<bool>.Success(updated);
         }
 
-        public async Task<List<RoleResponse>> GetAllRolesAsync()
+        public async Task<Result<List<RoleResponse>>> GetAllRolesAsync()
         {
             var roles = await _roleRepo.GetAllRoleAsync();
-            return roles.Select(RolesMap.ToReadDTO).ToList();
+
+            return Result<List<RoleResponse>>.Success(roles.Select(RolesMap.ToReadDTO).ToList());
         }
 
-        public async Task<ActionResultEnum.ActionResult> DeleteRoleByIDAsync(int id)
+        public async Task<Result<bool>> DeleteRoleByIDAsync(int id)
         {
             if (id < 0)
-                return ActionResultEnum.ActionResult.InvalidData;
+                return Result<bool>.Failure(new Error("Invalid role ID.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existingRole = await _roleRepo.GetRoleByIDAsync(id);
             if (existingRole == null)
-                return ActionResultEnum.ActionResult.NotFound;
+                return Result<bool>.Failure(new Error("Role not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            if (!await _roleRepo.DeleteRoleAsync(id))
-                return ActionResultEnum.ActionResult.Error;
+            bool deleted = await _roleRepo.DeleteRoleAsync(id);
 
-            return ActionResultEnum.ActionResult.Success;
+            if (!deleted)
+                return Result<bool>.Failure(new Error("Failed to delete role.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            return Result<bool>.Success(deleted);
         }
     }
 }

@@ -1,9 +1,7 @@
+using API_Layer.Mapping;
 using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.PaymentMethodDTOs;
-using Contracts.Enums;
-using Contracts.Exceptions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -31,22 +29,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPaymentMethodByIDAsync(int id)
         {
-            if (id <= 0) return BadRequest("Invalid ID");
+            var method = await _service.GetMethodByIdAsync(id);
 
-            try
-            {
-                var method = await _service.GetMethodByIdAsync(id);
-                return Ok(method);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(method);
         }
 
         [HttpGet(Name = "GetAllPaymentMethods")]
@@ -57,15 +42,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllMethodsAsync()
         {
-            try
-            {
-                var methods = await _service.GetAllMethodsAsync();
-                return Ok(methods);
-            }
-            catch (BusinessException ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            var methods = await _service.GetAllMethodsAsync();
+
+            return ResultMappingExtensions.ToActionResult(methods);
         }
 
         [HttpPost]
@@ -77,28 +56,12 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> AddNewMethodAsync([FromBody] CreatePaymentMethodRequest dto)
         {
-            if (dto == null || !dto.IsValid())
-                return BadRequest("Invalid payment method data");
+            var result = await _service.AddNewMethodAsync(dto);
 
-            try
-            {
-                int? id = await _service.AddNewMethodAsync(dto);
-                if (!id.HasValue)
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create payment method");
+            if (!result.IsSuccess)
+                return ResultMappingExtensions.ToActionResult(result);
 
-                var created = await _service.GetMethodByIdAsync(id.Value);
-                return CreatedAtRoute("GetPaymentMethodByID", new { id = id.Value }, created);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    ActionResultEnum.ActionResult.DBError => StatusCode(StatusCodes.Status500InternalServerError, ex.Message),
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return CreatedAtRoute("GetPaymentMethodByID", new { id = result.Value.MethodID }, result.Value);
         }
 
         [HttpPut("{id}", Name = "UpdatePaymentMethod")]
@@ -111,26 +74,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> UpdateMethodAsync(int id, [FromBody] UpdatePaymentMethodRequest dto)
         {
-            if (id <= 0 || dto == null || !dto.IsValid())
-                return BadRequest("Invalid data");
+            var result = await _service.UpdateMethodAsync(id, dto);
 
-            try
-            {
-                bool updated = await _service.UpdateMethodAsync(id, dto);
-                if (updated)
-                    return Ok("Payment method updated successfully");
-
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to update payment method");
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result, "Updated Successfully");
         }
 
         [HttpDelete("{id}", Name = "DeletePaymentMethodByID")]
@@ -143,26 +89,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteMethodAsync(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _service.DeleteMethodAsync(id);
 
-            try
-            {
-                bool deleted = await _service.DeleteMethodAsync(id);
-                if (deleted)
-                    return NoContent();
-
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to delete payment method");
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result, null, false);
         }
     }
 }

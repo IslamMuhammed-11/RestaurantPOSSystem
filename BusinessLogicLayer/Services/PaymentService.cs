@@ -1,15 +1,12 @@
+using BusinessLogicLayer.Events;
 using BusinessLogicLayer.Interfaces;
-using Contracts.Exceptions;
-using Contracts.Enums;
+using BusinessLogicLayer.Mapping;
 using Contracts.DTOs.PaymentDTOs;
+using Contracts.Enums;
+using Contracts.Result;
 using DataAccessLayer.Entites;
 using DataAccessLayer.Interfaces;
-using BusinessLogicLayer.Mapping;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using MediatR;
-using BusinessLogicLayer.Events;
 
 namespace BusinessLogicLayer.Services
 {
@@ -29,78 +26,85 @@ namespace BusinessLogicLayer.Services
             _mediator = mediator;
         }
 
-        public async Task<int?> CreateNewPaymentAsync(int orderId, CreatePaymentRequest payment)
+        public async Task<Result<PaymentResponse>> CreateNewPaymentAsync(int orderId, CreatePaymentRequest payment)
         {
             if (payment == null || !payment.IsValid())
-                throw new BusinessException("Invalid payment data.", 90000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentResponse>.Failure(new Error("Invalid payment data.", ErrorCodes.enErrorCodes.INVALID_DATA));
             // Ensure order exists
             var order = await _orderRepo.GetOrderByIDAsync(orderId);
             if (order == null)
-                throw new BusinessException("Order not found.", 90003, ActionResultEnum.ActionResult.NotFound);
-
+                return Result<PaymentResponse>.Failure(new Error("Order not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
             // Ensure order isn't cancelled
             if (order.OrderStatus == OrderEntity.enOrderStatus.Cancelled)
-                throw new BusinessException("Cannot pay for a cancelled order.", 90004, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentResponse>.Failure(new Error("Cannot pay for a cancelled order.", ErrorCodes.enErrorCodes.BUSINESS_RULE_VIOLATION));
 
             // Check if a payment already exists for this order
             if (await _paymentRepo.IsPaid(orderId))
-                throw new BusinessException("Payment for this order already exists.", 90005, ActionResultEnum.ActionResult.Conflict);
-
+                return Result<PaymentResponse>.Failure(new Error("Payment for this order already exists.", ErrorCodes.enErrorCodes.BUSINESS_RULE_VIOLATION));
             // Check paid amount equals order total
             if (payment.PaymentAmount != order.TotalPrice)
-                throw new BusinessException("Paid amount does not match order total.", 90006, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentResponse>.Failure(new Error("Paid amount does not match order total.", ErrorCodes.enErrorCodes.BUSINESS_RULE_VIOLATION));
 
-            if (await _paymentMethodService.GetMethodByIdAsync(payment.PaymentMethodID) == null)
-                throw new BusinessException($"Invalid payment method Id {payment.PaymentMethodID}", 90007, ActionResultEnum.ActionResult.NotFound);
-
+            var paymentMethodResult = await _paymentMethodService.GetMethodByIdAsync(payment.PaymentMethodID);
+            if (!paymentMethodResult.IsSuccess)
+                return Result<PaymentResponse>.Failure(new Error($"Invalid payment method Id {payment.PaymentMethodID}", ErrorCodes.enErrorCodes.NOT_FOUND));
             // Map DTO to entity
             var entity = PaymentMap.ToEntity(payment, orderId);
 
             int? ID = await _paymentRepo.CreateNewPaymentAsync(entity);
 
             if (!ID.HasValue)
-                return null;
+                return Result<PaymentResponse>.Failure(new Error("Failed to create payment.", ErrorCodes.enErrorCodes.DB_ERROR));
 
             await _mediator.Publish(new PaymentCreated.PaymentCreatedEvent
               (ID.Value, entity.OrderID, entity.PaidAmount));
 
-            return ID;
+            var response = new PaymentResponse
+            {
+                PaymentID = ID.Value,
+                OrderID = entity.OrderID,
+                PaymentAmount = entity.PaidAmount,
+                PaymentMethodID = entity.PaymentMethodID,
+                PaymentDate = entity.PaymentDate
+            };
+
+            return Result<PaymentResponse>.Success(response);
         }
 
-        public async Task<List<PaymentResponse>> GetAllPaymentsAsync()
+        public async Task<Result<List<PaymentResponse>>> GetAllPaymentsAsync()
         {
             var payments = await _paymentRepo.GetAllPaymentsAsync();
-            return PaymentMap.ToReadDTOList(payments);
+            return Result<List<PaymentResponse>>.Success(PaymentMap.ToReadDTOList(payments));
         }
 
-        public async Task<PaymentResponse?> GetPaymentByOrderIdAsync(int orderId)
+        public async Task<Result<PaymentResponse>> GetPaymentByOrderIdAsync(int orderId)
         {
             if (orderId < 0)
-                throw new BusinessException("Order Id must be non negative number", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentResponse>.Failure(new Error("Order Id must be non negative number", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var order = await _orderRepo.GetOrderByIDAsync(orderId);
 
             if (order == null)
-                throw new BusinessException($"Order with this Id was not found {orderId}", 80000, ActionResultEnum.ActionResult.NotFound);
+                return Result<PaymentResponse>.Failure(new Error($"Order with this Id was not found {orderId}", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             var payment = await _paymentRepo.GetPaymentByOrderIdAsync(orderId);
 
             if (payment == null)
-                throw new BusinessException("Payment not found", 80000, ActionResultEnum.ActionResult.NotFound);
+                return Result<PaymentResponse>.Failure(new Error("Payment not found", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            return PaymentMap.ToReadDTO(payment);
+            return Result<PaymentResponse>.Success(PaymentMap.ToReadDTO(payment));
         }
 
-        public async Task<PaymentResponse?> GetPaymentByPaymentIdAsync(int id)
+        public async Task<Result<PaymentResponse>> GetPaymentByPaymentIdAsync(int id)
         {
             if (id <= 0)
-                throw new BusinessException("Invalid payment id.", 90007, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentResponse>.Failure(new Error("Invalid payment id.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var payment = await _paymentRepo.GetPaymentByPaymentIdAsync(id);
             if (payment == null)
-                throw new BusinessException("Payment not found.", 90008, ActionResultEnum.ActionResult.NotFound);
+                return Result<PaymentResponse>.Failure(new Error("Payment not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            return PaymentMap.ToReadDTO(payment);
+            return Result<PaymentResponse>.Success(PaymentMap.ToReadDTO(payment));
         }
     }
 }

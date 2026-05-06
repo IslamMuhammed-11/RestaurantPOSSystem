@@ -1,4 +1,5 @@
-﻿using DataAccessLayer.Entites;
+﻿using Contracts.Exceptions;
+using DataAccessLayer.Entites;
 using DataAccessLayer.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -26,36 +27,28 @@ namespace DataAccessLayer.Repos
 
             cmd.Parameters.AddWithValue("@UserID", ID);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new UserEntity
                 {
-                    return new UserEntity
-                    {
-                        UserID = ID,
-                        PersonID = (int)reader["PersonID"],
-                        RoleID = (int)reader["RoleID"],
-                        Role = (string)reader["Role"],
-                        UserName = (string)reader["Username"],
-                        PasswordHash = (string)reader["PasswordHash"],
-                        IsActive = (bool)reader["IsActive"],
-                        RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
-                        ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime)reader["ExpiresAt"],
-                        RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime)reader["RevokedAt"]
-                    };
-                }
-                else
-                    return null;
+                    UserID = ID,
+                    PersonID = (int)reader["PersonID"],
+                    RoleID = (int)reader["RoleID"],
+                    Role = (string)reader["Role"],
+                    UserName = (string)reader["Username"],
+                    PasswordHash = (string)reader["PasswordHash"],
+                    IsActive = (bool)reader["IsActive"],
+                    RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
+                    ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime)reader["ExpiresAt"],
+                    RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime)reader["RevokedAt"]
+                };
             }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+            else
                 return null;
-            }
         }
 
         public async Task<UserEntity?> GetUserByUsernameAsync(string username)
@@ -70,73 +63,58 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@Username", username);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new UserEntity
                 {
-                    return new UserEntity
-                    {
-                        UserID = (int)reader["UserID"],
-                        PersonID = (int)reader["PersonID"],
-                        RoleID = (int)reader["RoleID"],
-                        Role = (string)reader["Role"],
-                        UserName = (string)reader["Username"],
-                        PasswordHash = (string)reader["PasswordHash"],
-                        IsActive = (bool)reader["IsActive"],
-                        RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
-                        ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime?)reader["ExpiresAt"],
-                        RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime?)reader["RevokedAt"]
-                    };
-                }
+                    UserID = (int)reader["UserID"],
+                    PersonID = (int)reader["PersonID"],
+                    RoleID = (int)reader["RoleID"],
+                    Role = (string)reader["Role"],
+                    UserName = (string)reader["Username"],
+                    PasswordHash = (string)reader["PasswordHash"],
+                    IsActive = (bool)reader["IsActive"],
+                    RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
+                    ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime?)reader["ExpiresAt"],
+                    RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime?)reader["RevokedAt"]
+                };
+            }
 
-                return null;
-            }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return null;
-            }
+            return null;
         }
 
         public async Task<List<UserEntity>> GetAllUserAsync()
         {
             List<UserEntity> users = new List<UserEntity>();
-            try
+            using SqlConnection connection =
+                new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetAllUsers", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                using SqlConnection connection =
-                    new SqlConnection(_ConnString);
-                using SqlCommand cmd = new SqlCommand("SP_GetAllUsers", connection);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                users.Add(new UserEntity
                 {
-                    users.Add(new UserEntity
-                    {
-                        UserID = (int)reader["UserID"],
-                        PersonID = (int)reader["PersonID"],
-                        RoleID = (int)reader["RoleID"],
-                        Role = (string)reader["Role"],
-                        UserName = (string)reader["UserName"],
-                        PasswordHash = (string)reader["PasswordHash"],
-                        IsActive = (bool)reader["IsActive"],
-                        RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
-                        ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime?)reader["ExpiresAt"],
-                        RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime?)reader["RevokedAt"]
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                    UserID = (int)reader["UserID"],
+                    PersonID = (int)reader["PersonID"],
+                    RoleID = (int)reader["RoleID"],
+                    Role = (string)reader["Role"],
+                    UserName = (string)reader["UserName"],
+                    PasswordHash = (string)reader["PasswordHash"],
+                    IsActive = (bool)reader["IsActive"],
+                    RefreshTokenHash = reader["RefreshTokenHash"] == DBNull.Value ? null : (string)reader["RefreshTokenHash"],
+                    ExpiresAt = reader["ExpiresAt"] == DBNull.Value ? null : (DateTime?)reader["ExpiresAt"],
+                    RevokedAt = reader["RevokedAt"] == DBNull.Value ? null : (DateTime?)reader["RevokedAt"]
+                });
             }
 
             return users;
@@ -172,9 +150,14 @@ namespace DataAccessLayer.Repos
 
                 await cmd.ExecuteNonQueryAsync();
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return (int?)param.Value;
@@ -223,10 +206,14 @@ namespace DataAccessLayer.Repos
                 if (result != null && int.TryParse(result.ToString(), out int num))
                     RowsAffected = num;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -252,10 +239,14 @@ namespace DataAccessLayer.Repos
                 if (result != null && int.TryParse(result.ToString(), out int num))
                     RowsAffected = num;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
             return RowsAffected > 0;
         }
@@ -280,8 +271,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
             return RowsAffected > 0;
         }
@@ -307,8 +302,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -336,8 +335,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -361,8 +364,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
         }
 
@@ -386,9 +393,14 @@ namespace DataAccessLayer.Repos
                 if (result != null && int.TryParse(result.ToString(), out int num))
                     RowsAffected = num;
             }
-            catch (SqlException)
+            catch (SqlException ex)
             {
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -412,9 +424,14 @@ namespace DataAccessLayer.Repos
                 if (result != null && int.TryParse(result.ToString(), out int num))
                     RowsAffected = num;
             }
-            catch (Exception)
+            catch (SqlException ex)
             {
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;

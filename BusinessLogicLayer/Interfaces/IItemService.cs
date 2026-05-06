@@ -1,18 +1,19 @@
 ﻿using Contracts.DTOs.OrderItemsDTOs;
 using System.Threading.Tasks;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Interfaces
 {
     public interface IItemService
     {
-        Task<OrderItemResponse?> GetItemByIdAsync(int id);
+        Task<Result<OrderItemResponse>> GetItemByIdAsync(int id);
 
-        Task<int?> AddNewItemAsync(CreateOrderItemRequest item, int orderId);
+        Task<Result<CreateOrderItemResponse>> AddNewItemAsync(CreateOrderItemRequest item, int orderId);
 
-        Task<bool> UpdateItemsAsync(UpdateOrderItemRequest item);
+        Task<Result<bool>> UpdateItemsAsync(UpdateOrderItemRequest item);
 
-        Task<bool> UpdateQuantityAsync(UpdateOrderItemQuantityRequest quantity , int orderID , int ItemId);
+        Task<Result<bool>> UpdateQuantityAsync(UpdateOrderItemQuantityRequest quantity, int orderID, int ItemId);
 
-        Task<bool> DeleteItemsAsync(int OrderId , int ItemId);
+        Task<Result<bool>> DeleteItemsAsync(int OrderId, int ItemId);
     }
 }

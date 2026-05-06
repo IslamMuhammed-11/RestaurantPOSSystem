@@ -1,14 +1,16 @@
-﻿using DataAccessLayer.Interfaces;
+﻿using Contracts.Exceptions;
+using DataAccessLayer.Entites;
+using DataAccessLayer.Interfaces;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Data.SqlClient;
-using System.Data;
-using DataAccessLayer.Entites;
-using System.Diagnostics;
+
 namespace DataAccessLayer.Repos
 {
     public class CustomerRepo : ICustomerRepo
@@ -29,28 +31,18 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@CustomerID", id);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new CustomerEntity
                 {
-                    return new CustomerEntity
-                    {
-                        CustomerID = (int)reader["CustomerID"],
-                        Name = reader["Name"]?.ToString() ?? string.Empty,
-                        Phone = reader["Phone"]?.ToString()
-                    };
-                }
-
-                
-            }
-            catch (SqlException ex)
-            {
-
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                    CustomerID = (int)reader["CustomerID"],
+                    Name = reader["Name"]?.ToString() ?? string.Empty,
+                    Phone = reader["Phone"]?.ToString()
+                };
             }
 
             return null;
@@ -82,7 +74,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return customers;
@@ -115,7 +112,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             if (param.Value == DBNull.Value)
@@ -150,8 +152,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -178,8 +184,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;

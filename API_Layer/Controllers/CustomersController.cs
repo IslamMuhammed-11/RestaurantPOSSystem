@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using API_Layer.Mapping;
 using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.CustomerDTOs;
-using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace API_Layer.Controllers
 {
@@ -27,14 +26,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetCustomerByIDAsync(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _customerService.GetCustomerByIDAsync(id);
 
-            var customer = await _customerService.GetCustomerByIDAsync(id);
-            if (customer == null)
-                return NotFound("Customer not found");
-
-            return Ok(customer);
+            return Mapping.ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpGet()]
@@ -43,8 +37,8 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllCustomersAsync()
         {
-            var customers = await _customerService.GetAllCustomersAsync();
-            return Ok(customers);
+            var result = await _customerService.GetAllCustomersAsync();
+            return Mapping.ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpPost("create")]
@@ -54,16 +48,12 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> AddNewCustomerAsync(CreateCustomerRequest customer)
         {
-            if (customer == null || string.IsNullOrEmpty(customer.Name))
-                return BadRequest("Invalid customer data");
+            var result = await _customerService.AddNewCustomerAsync(customer);
 
-            int? ID = await _customerService.AddNewCustomerAsync(customer);
-            if (ID == null)
-                return StatusCode(500);
+            if (!result.IsSuccess)
+                return Mapping.ResultMappingExtensions.ToActionResult(result);
 
-            customer.SetID(ID.Value);
-
-            return CreatedAtRoute("GetCustomerByID", new { id = ID }, customer);
+            return CreatedAtRoute("GetCustomerByID", new { id = result.Value.CustomerID }, result.Value);
         }
 
         [HttpPut("{id}/update", Name = "UpdateCustomer")]
@@ -77,13 +67,8 @@ namespace API_Layer.Controllers
             if (id <= 0 || customer == null || string.IsNullOrEmpty(customer.Name))
                 return BadRequest("Invalid data");
             var result = await _customerService.UpdateCustomerAsync(id, customer);
-            return result switch
-            {
-                ActionResultEnum.ActionResult.NotFound => NotFound("Customer not found"),
-                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid customer data"),
-                ActionResultEnum.ActionResult.Success => Ok("Customer updated successfully"),
-                _ => StatusCode(500)
-            };
+
+            return ResultMappingExtensions.ToActionResult(result, "Updated successfully");
         }
 
         [HttpDelete("{id}/delete", Name = "DeleteCustomerByID")]
@@ -97,12 +82,11 @@ namespace API_Layer.Controllers
             if (id <= 0)
                 return BadRequest("Invalid ID");
             var result = await _customerService.DeleteCustomerByIDAsync(id);
-            return result switch
-            {
-                ActionResultEnum.ActionResult.NotFound => NotFound("Customer not found"),
-                ActionResultEnum.ActionResult.Success => NoContent(),
-                _ => StatusCode(500)
-            };
+
+            if (!result.IsSuccess)
+                return Mapping.ResultMappingExtensions.ToActionResult(result);
+
+            return NoContent();
         }
     }
 }

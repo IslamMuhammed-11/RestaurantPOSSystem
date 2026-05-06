@@ -1,15 +1,9 @@
-﻿
-using DataAccessLayer.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
-using System.Data;
-using Microsoft.Extensions.Configuration;
+﻿using Contracts.Exceptions;
 using DataAccessLayer.Entites;
-using Contracts.Exceptions;
+using DataAccessLayer.Interfaces;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using System.Data;
 
 namespace DataAccessLayer.Repos
 {
@@ -26,32 +20,25 @@ namespace DataAccessLayer.Repos
         public async Task<List<TableEntity>> GetAllTablesAsync()
         {
             List<TableEntity> tables = new List<TableEntity>();
-            try
+
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetAllTables", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                using SqlConnection connection = new SqlConnection(_ConnString);
-                using SqlCommand cmd = new SqlCommand("SP_GetAllTables", connection);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                tables.Add(new TableEntity
                 {
-                    tables.Add(new TableEntity
-                    {
-                        TableID = (int)reader["TableID"],
-                        TableStatus = reader["TableStatus"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TableStatus"]),
-                        NumberOfSeats = reader["Seats"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Seats"])
-                    });
-                }
+                    TableID = (int)reader["TableID"],
+                    TableStatus = reader["TableStatus"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TableStatus"]),
+                    NumberOfSeats = reader["Seats"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Seats"])
+                });
             }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
-            }
-
             return tables;
         }
 
@@ -63,25 +50,18 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@TableID", tableId);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new TableEntity
                 {
-                    return new TableEntity
-                    {
-                        TableID = (int)reader["TableID"],
-                        TableStatus = reader["TableStatus"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TableStatus"]),
-                        NumberOfSeats = reader["Seats"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Seats"])
-                    };
-                }
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                    TableID = (int)reader["TableID"],
+                    TableStatus = reader["TableStatus"] == DBNull.Value ? 0 : Convert.ToInt32(reader["TableStatus"]),
+                    NumberOfSeats = reader["Seats"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Seats"])
+                };
             }
 
             return null!;
@@ -112,7 +92,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             if (param.Value == DBNull.Value)
@@ -144,7 +129,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -169,7 +159,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;

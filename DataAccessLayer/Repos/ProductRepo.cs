@@ -1,14 +1,9 @@
-﻿using DataAccessLayer.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
-using System.Data;
-using Microsoft.Extensions.Configuration;
+﻿using Contracts.Exceptions;
 using DataAccessLayer.Entites;
-using Contracts.Exceptions;
+using DataAccessLayer.Interfaces;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using System.Data;
 
 namespace DataAccessLayer.Repos
 {
@@ -30,61 +25,47 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@ProductID", id);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new ProductEntity
                 {
-                    return new ProductEntity
-                    {
-                        ProductID = (int)reader["ProductID"],
-                        CategoryID = (int)reader["CategoryID"],
-                        Name = reader["Name"]?.ToString() ?? string.Empty,
-                        Price = Convert.ToDecimal(reader["Price"]),
-                        IsAvailable = reader["IsAvailable"] != DBNull.Value && (bool)reader["IsAvailable"]
-                    };
-                }
+                    ProductID = (int)reader["ProductID"],
+                    CategoryID = (int)reader["CategoryID"],
+                    Name = reader["Name"]?.ToString() ?? string.Empty,
+                    Price = Convert.ToDecimal(reader["Price"]),
+                    IsAvailable = reader["IsAvailable"] != DBNull.Value && (bool)reader["IsAvailable"]
+                };
             }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
-            }
-
             return null;
         }
 
         public async Task<List<ProductEntity>> GetAllProductsAsync()
         {
             List<ProductEntity> products = new List<ProductEntity>();
-            try
+
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetAllProducts", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                using SqlConnection connection = new SqlConnection(_ConnString);
-                using SqlCommand cmd = new SqlCommand("SP_GetAllProducts", connection);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                products.Add(new ProductEntity
                 {
-                    products.Add(new ProductEntity
-                    {
-                        ProductID = (int)reader["ProductID"],
-                        CategoryID = (int)reader["CategoryID"],
-                        Name = reader["Name"]?.ToString() ?? string.Empty,
-                        Price = Convert.ToDecimal(reader["Price"]),
-                        IsAvailable = reader["IsAvailable"] != DBNull.Value && (bool)reader["IsAvailable"]
-                    });
-                }
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                    ProductID = (int)reader["ProductID"],
+                    CategoryID = (int)reader["CategoryID"],
+                    Name = reader["Name"]?.ToString() ?? string.Empty,
+                    Price = Convert.ToDecimal(reader["Price"]),
+                    IsAvailable = reader["IsAvailable"] != DBNull.Value && (bool)reader["IsAvailable"]
+                });
             }
 
             return products;
@@ -119,7 +100,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             if (param.Value == DBNull.Value)
@@ -154,7 +140,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -179,7 +170,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -191,18 +187,13 @@ namespace DataAccessLayer.Repos
             using SqlCommand cmd = new SqlCommand("SP_DoesProductExist", connection);
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@ProductID", id);
-            try
-            {
-                await connection.OpenAsync();
 
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-                if (reader.HasRows)
-                    return true;
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
-            }
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+            if (reader.HasRows)
+                return true;
+
             return false;
         }
 
@@ -212,17 +203,12 @@ namespace DataAccessLayer.Repos
             using SqlCommand cmd = new SqlCommand("SP_IsProductAvailable", connection);
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@ProductID", id);
-            try
-            {
-                await connection.OpenAsync();
-               using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-                if (reader.HasRows)
-                    return true;
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
-            }
+
+            await connection.OpenAsync();
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+            if (reader.HasRows)
+                return true;
+
             return false;
         }
 
@@ -233,23 +219,15 @@ namespace DataAccessLayer.Repos
             using SqlCommand cmd = new SqlCommand("SP_ValidateProducts", connection);
             cmd.CommandType = CommandType.StoredProcedure;
 
-            cmd.Parameters.Add("@ProductsIds" , SqlDbType.Structured).Value = products;
+            cmd.Parameters.Add("@ProductsIds", SqlDbType.Structured).Value = products;
 
-            try
+            await connection.OpenAsync();
+            using SqlDataReader InvalidData = await cmd.ExecuteReaderAsync();
+
+            while (await InvalidData.ReadAsync())
             {
-                await connection.OpenAsync();
-                using SqlDataReader InvalidData = await cmd.ExecuteReaderAsync();
-
-                while(await InvalidData.ReadAsync())
-                {
-                    int id = (int)InvalidData["ProductID"];
-                    InvalidIDs.Add(id);
-                }
-
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                int id = (int)InvalidData["ProductID"];
+                InvalidIDs.Add(id);
             }
 
             return InvalidIDs;

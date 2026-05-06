@@ -1,4 +1,5 @@
-﻿using BusinessLogicLayer.Interfaces;
+﻿using API_Layer.Mapping;
+using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.ProductDTOs;
 using Contracts.Enums;
 using Contracts.Exceptions;
@@ -30,23 +31,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetProductByIDAsync(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _productService.GetProductByIDAsync(id);
 
-            try
-            {
-                var product = await _productService.GetProductByIDAsync(id);
-                return Ok(product);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpGet()]
@@ -56,15 +43,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllProductsAsync()
         {
-            try
-            {
-                var products = await _productService.GetAllProductsAsync();
-                return Ok(products);
-            }
-            catch (BusinessException ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            var result = await _productService.GetAllProductsAsync();
+
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpPost()]
@@ -77,28 +58,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> AddNewProductAsync(CreateProductRequest product)
         {
-            if (product == null || !product.IsValid())
-                return BadRequest("Invalid product data");
+            var result = await _productService.AddNewProductAsync(product);
 
-            try
-            {
-                int? id = await _productService.AddNewProductAsync(product);
-                if (id == null)
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create product");
-
-                product.SetID(id.Value);
-                return CreatedAtRoute("GetProductByID", new { id = id.Value }, product);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    ActionResultEnum.ActionResult.DBError => StatusCode(StatusCodes.Status500InternalServerError, ex.Message),
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpPut("{id}", Name = "UpdateProduct")]
@@ -111,25 +73,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> UpdateProductAsync(int id, UpdateProductRequest product)
         {
-            if (id <= 0 || product == null)
-                return BadRequest("Invalid data");
+            var result = await _productService.UpdateProductAsync(id, product);
 
-            try
-            {
-                bool updated = await _productService.UpdateProductAsync(id, product);
-                if (updated)
-                    return Ok("Product updated successfully");
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to update product");
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result, "Updated Successfully");
         }
 
         [HttpDelete("{id}", Name = "DeleteProductByID")]
@@ -142,25 +88,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteProductByIDAsync(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _productService.DeleteProductByIDAsync(id);
 
-            try
-            {
-                bool deleted = await _productService.DeleteProductByIDAsync(id);
-                if (deleted)
-                    return NoContent();
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to delete product");
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result, "Deleted Successfully", false);
         }
     }
 }

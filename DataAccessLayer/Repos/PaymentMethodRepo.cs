@@ -65,25 +65,17 @@ namespace DataAccessLayer.Repos
             using SqlCommand cmd = new SqlCommand("SP_GetAllPaymentMethods", connection);
             cmd.CommandType = CommandType.StoredProcedure;
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                methods.Add(new PaymentMethodEntity
                 {
-                    methods.Add(new PaymentMethodEntity
-                    {
-                        MethodID = (int)reader["MethodID"],
-                        PaymentMethod = reader["MethodName"]?.ToString() ?? string.Empty
-                    });
-                }
-            }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                    MethodID = (int)reader["MethodID"],
+                    PaymentMethod = reader["MethodName"]?.ToString() ?? string.Empty
+                });
             }
 
             return methods;
@@ -100,25 +92,17 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@PaymentMethodID", id);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new PaymentMethodEntity
                 {
-                    return new PaymentMethodEntity
-                    {
-                        MethodID = (int)reader["MethodID"],
-                        PaymentMethod = reader["MethodName"]?.ToString() ?? string.Empty
-                    };
-                }
-            }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                    MethodID = (int)reader["MethodID"],
+                    PaymentMethod = reader["MethodName"]?.ToString() ?? string.Empty
+                };
             }
 
             return null;
@@ -145,8 +129,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -175,8 +163,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;

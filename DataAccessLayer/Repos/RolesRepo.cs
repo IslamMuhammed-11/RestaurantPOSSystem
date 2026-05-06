@@ -1,14 +1,9 @@
-﻿using DataAccessLayer.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
-using System.Data;
+﻿using Contracts.Exceptions;
 using DataAccessLayer.Entites;
+using DataAccessLayer.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
+using System.Data;
 
 namespace DataAccessLayer.Repos
 {
@@ -27,28 +22,21 @@ namespace DataAccessLayer.Repos
             using SqlConnection connection = new SqlConnection(_ConnString);
             using SqlCommand cmd = new SqlCommand("SP_GetRoleByID", connection);
 
-            try
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@RoleID", id);
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@RoleID", id);
-
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new RoleEntity
                 {
-                    return new RoleEntity
-                    {
-                        RoleID = (int)reader["RoleID"],
-                        RoleName = reader["RoleName"]?.ToString() ?? string.Empty,
-                        // Premission = Convert.ToInt16(reader["Premission"])
-                    };
-                }
-            }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, EventLogEntryType.Error);
+                    RoleID = (int)reader["RoleID"],
+                    RoleName = reader["RoleName"]?.ToString() ?? string.Empty,
+                    // Premission = Convert.ToInt16(reader["Premission"])
+                };
             }
 
             return null;
@@ -57,30 +45,24 @@ namespace DataAccessLayer.Repos
         public async Task<List<RoleEntity>> GetAllRoleAsync()
         {
             List<RoleEntity> roles = new List<RoleEntity>();
-            try
+
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetAllRoles", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                using SqlConnection connection = new SqlConnection(_ConnString);
-                using SqlCommand cmd = new SqlCommand("SP_GetAllRoles", connection);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                roles.Add(new RoleEntity
                 {
-                    roles.Add(new RoleEntity
-                    {
-                        RoleID = (int)reader["RoleID"],
-                        RoleName = reader["RoleName"]?.ToString() ?? string.Empty,
-                        //Premission = Convert.ToInt16(reader["Permission"])
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                    RoleID = (int)reader["RoleID"],
+                    RoleName = reader["RoleName"]?.ToString() ?? string.Empty,
+                    //Premission = Convert.ToInt16(reader["Permission"])
+                });
             }
 
             return roles;
@@ -111,9 +93,14 @@ namespace DataAccessLayer.Repos
                 await connection.OpenAsync();
                 await cmd.ExecuteNonQueryAsync();
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             if (param.Value == DBNull.Value)
@@ -146,10 +133,14 @@ namespace DataAccessLayer.Repos
                 if (result != null && int.TryParse(result.ToString(), out int num))
                     RowsAffected = num;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -174,10 +165,14 @@ namespace DataAccessLayer.Repos
                 if (result != null && int.TryParse(result.ToString(), out int num))
                     RowsAffected = num;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                return false;
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;

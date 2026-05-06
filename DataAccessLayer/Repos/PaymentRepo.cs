@@ -1,13 +1,9 @@
-﻿using DataAccessLayer.Interfaces;
+﻿using Contracts.Exceptions;
 using DataAccessLayer.Entites;
+using DataAccessLayer.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Threading.Tasks;
-using Contracts.Exceptions;
-using Contracts.Enums;
 
 namespace DataAccessLayer.Repos
 {
@@ -49,8 +45,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             if (param.Value == DBNull.Value)
@@ -67,28 +67,20 @@ namespace DataAccessLayer.Repos
             using SqlCommand cmd = new SqlCommand("SP_GetAllPayments", connection);
             cmd.CommandType = CommandType.StoredProcedure;
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                payments.Add(new PaymentEntity
                 {
-                    payments.Add(new PaymentEntity
-                    {
-                        PaymentID = (int)reader["PaymentID"],
-                        OrderID = (int)reader["OrderID"],
-                        PaymentMethodID = (int)reader["PaymentMethod"],
-                        PaymentDate = Convert.ToDateTime(reader["PaymentDate"]),
-                        PaidAmount = Convert.ToDecimal(reader["PaidAmount"])
-                    });
-                }
-            }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                    PaymentID = (int)reader["PaymentID"],
+                    OrderID = (int)reader["OrderID"],
+                    PaymentMethodID = (int)reader["PaymentMethod"],
+                    PaymentDate = Convert.ToDateTime(reader["PaymentDate"]),
+                    PaidAmount = Convert.ToDecimal(reader["PaidAmount"])
+                });
             }
 
             return payments;
@@ -102,28 +94,20 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add("@PaymentID", SqlDbType.Int).Value = id;
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new PaymentEntity
                 {
-                    return new PaymentEntity
-                    {
-                        PaymentID = (int)reader["PaymentID"],
-                        OrderID = (int)reader["OrderID"],
-                        PaymentMethodID = (int)reader["PaymentMethod"],
-                        PaymentDate = Convert.ToDateTime(reader["PaymentDate"]),
-                        PaidAmount = Convert.ToDecimal(reader["PaidAmount"])
-                    };
-                }
-            }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                    PaymentID = (int)reader["PaymentID"],
+                    OrderID = (int)reader["OrderID"],
+                    PaymentMethodID = (int)reader["PaymentMethod"],
+                    PaymentDate = Convert.ToDateTime(reader["PaymentDate"]),
+                    PaidAmount = Convert.ToDecimal(reader["PaidAmount"])
+                };
             }
 
             return null;
@@ -132,34 +116,26 @@ namespace DataAccessLayer.Repos
         public async Task<PaymentEntity?> GetPaymentByOrderIdAsync(int orderId)
         {
             using SqlConnection connection = new SqlConnection(_ConnString);
-            using SqlCommand cmd = new SqlCommand("SP_GetPaymentByOrderID" , connection);
+            using SqlCommand cmd = new SqlCommand("SP_GetPaymentByOrderID", connection);
 
             cmd.CommandType = CommandType.StoredProcedure;
 
-            cmd.Parameters.Add("@OrderID" , SqlDbType.Int).Value = orderId;
+            cmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = orderId;
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = cmd.ExecuteReader();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = cmd.ExecuteReader();
-
-                if (await reader.ReadAsync())
+                return new PaymentEntity
                 {
-                    return new PaymentEntity
-                    {
-                        PaymentID = (int)reader["PaymentID"],
-                        OrderID = (int)reader["OrderID"],
-                        PaymentMethodID = (int)reader["PaymentMethod"],
-                        PaymentDate = (DateTime)reader["PaymentDate"],
-                        PaidAmount = (decimal)reader["PaidAmount"]
-                    };
-                }
-            }
-            catch (SqlException ex)
-            {
-
-                throw new BusinessException(ex.Message, 80000, ActionResultEnum.ActionResult.DBError);
+                    PaymentID = (int)reader["PaymentID"],
+                    OrderID = (int)reader["OrderID"],
+                    PaymentMethodID = (int)reader["PaymentMethod"],
+                    PaymentDate = (DateTime)reader["PaymentDate"],
+                    PaidAmount = (decimal)reader["PaidAmount"]
+                };
             }
 
             return null;
@@ -168,30 +144,20 @@ namespace DataAccessLayer.Repos
         public async Task<bool> IsPaid(int orderId)
         {
             using SqlConnection connection = new SqlConnection(_ConnString);
-            using SqlCommand cmd = new SqlCommand("SP_IsPaid" , connection);
+            using SqlCommand cmd = new SqlCommand("SP_IsPaid", connection);
 
             cmd.CommandType = CommandType.StoredProcedure;
 
-            cmd.Parameters.Add("@OrderID" , SqlDbType.Int).Value= orderId;
+            cmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = orderId;
 
-            try
-            {
-                await connection.OpenAsync();
+            await connection.OpenAsync();
 
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
-                if (reader.HasRows)
-                    return true;
-                else 
-                    return false;
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message , 80000 , ActionResultEnum.ActionResult.DBError); 
-            }
-
+            if (reader.HasRows)
+                return true;
+            else
+                return false;
         }
-
-
     }
 }

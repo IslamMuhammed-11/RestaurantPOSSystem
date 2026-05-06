@@ -46,7 +46,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -96,7 +101,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return result;
@@ -130,7 +140,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return null;
@@ -163,9 +178,14 @@ namespace DataAccessLayer.Repos
                     });
                 }
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return list;

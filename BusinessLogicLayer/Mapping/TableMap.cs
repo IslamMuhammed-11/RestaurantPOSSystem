@@ -15,7 +15,7 @@ namespace BusinessLogicLayer.Mapping
             return new TableResponse
             {
                 TableID = entity.TableID,
-                // Name = $"Table {entity.TableID}",
+                Status = (Contracts.Enums.TableStatusEnum.enTableStatus)entity.TableStatus,
                 Seats = entity.NumberOfSeats
             };
         }
@@ -25,7 +25,8 @@ namespace BusinessLogicLayer.Mapping
             return new TableEntity
             {
                 NumberOfSeats = (short)dto.Seats,
-                TableStatus = 0
+
+                TableStatus = (int)Contracts.Enums.TableStatusEnum.enTableStatus.Available
             };
         }
 

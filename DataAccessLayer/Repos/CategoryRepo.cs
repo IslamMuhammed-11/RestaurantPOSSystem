@@ -9,6 +9,7 @@ using System.Data;
 using Microsoft.Extensions.Configuration;
 using DataAccessLayer.Entites;
 using Contracts.Exceptions;
+
 namespace DataAccessLayer.Repos
 {
     public class CategoryRepo : ICategoryRepo
@@ -29,54 +30,42 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@CategoryID", id);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new CategoryEntity
                 {
-                    return new CategoryEntity
-                    {
-                        CategoryID = (int)reader["CategoryID"],
-                        Name = reader["Name"]?.ToString() ?? string.Empty
-                    };
-                }
+                    CategoryID = (int)reader["CategoryID"],
+                    Name = reader["Name"]?.ToString() ?? string.Empty
+                };
             }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
-            }
+
             return null;
         }
 
         public async Task<List<CategoryEntity>> GetAllCategoriesAsync()
         {
             List<CategoryEntity> categories = new List<CategoryEntity>();
-            try
+
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetAllCategories", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                using SqlConnection connection = new SqlConnection(_ConnString);
-                using SqlCommand cmd = new SqlCommand("SP_GetAllCategories", connection);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                categories.Add(new CategoryEntity
                 {
-                    categories.Add(new CategoryEntity
-                    {
-                        CategoryID = (int)reader["CategoryID"],
-                        Name = reader["Name"]?.ToString() ?? string.Empty
-                    });
-                }
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                    CategoryID = (int)reader["CategoryID"],
+                    Name = reader["Name"]?.ToString() ?? string.Empty
+                });
             }
 
             return categories;
@@ -108,7 +97,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             if (param.Value == DBNull.Value)
@@ -140,7 +134,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -165,7 +164,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -185,11 +189,15 @@ namespace DataAccessLayer.Repos
 
                 if (reader.HasRows)
                     return true;
-
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
             return false;
         }

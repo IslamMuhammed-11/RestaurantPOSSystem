@@ -1,10 +1,8 @@
-﻿using BusinessLogicLayer.Interfaces;
-using BusinessLogicLayer.Services;
-using Contracts.DTOs.PersonDTOs;
+﻿using API_Layer.Mapping;
+using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.UserDTOs;
 using Contracts.Enums;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -34,20 +32,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetUserByIDAsync(int id, [FromServices] IAuthorizationService authorizationService)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _userService.GetUserByIDAsync(id);
 
-            var user = await _userService.GetUserByIDAsync(id);
-
-            if (user == null)
-                return NotFound("User not found");
-
-            var authResult = await authorizationService.AuthorizeAsync(User, user.UserID, "UserOwnerOrSuperOrAdmin");
-
-            if (!authResult.Succeeded)
-                return Forbid();
-
-            return Ok(user);
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpGet()]
@@ -58,8 +45,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllUsersAsync()
         {
-            var users = await _userService.GetAllUsersAsync();
-            return Ok(users);
+            var result = await _userService.GetAllUsersAsync();
+
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpPost()]
@@ -72,17 +60,12 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AddNewUserAsync(CreateUserRequest user)
         {
-            if (!user.IsValid())
-                return BadRequest("Invalid user data");
+            var result = await _userService.AddNewUserAsync(user);
 
-            int? ID = await _userService.AddNewUserAsync(user);
+            if (!result.IsSuccess)
+                return ResultMappingExtensions.ToActionResult(result);
 
-            if (ID == null)
-                return StatusCode(500);
-
-            user.SetUserID(ID.Value);
-
-            return CreatedAtRoute("GetUserByID", new { id = ID }, user);
+            return CreatedAtRoute("GetUserByID", new { id = result.Value.UserID }, result.Value);
         }
 
         //Policy Ownership
@@ -99,17 +82,16 @@ namespace API_Layer.Controllers
             var authResult = await authorizationService.AuthorizeAsync(User, id, "UserOwnerOrSuperOrAdmin");
 
             if (!authResult.Succeeded)
-                return Forbid();
+                return StatusCode(403, new ProblemDetails
+                {
+                    Title = "Forbidden",
+                    Detail = "You don’t have permission to perform this action",
+                    Status = 403
+                });
 
             var result = await _userService.UpdateUsernameAsync(id, user);
 
-            return result switch
-            {
-                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
-                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
-                ActionResultEnum.ActionResult.Success => NoContent(),
-                _ => StatusCode(500)
-            };
+            return ResultMappingExtensions.ToActionResult(result, $"Username updated successfully to {user.Username}");
         }
 
         [HttpDelete("{id}")]
@@ -124,13 +106,8 @@ namespace API_Layer.Controllers
         public async Task<IActionResult> DeleteUserByIDAsync(int id)
         {
             var result = await _userService.DeleteUserByIDAsync(id);
-            return result switch
-            {
-                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
-                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
-                ActionResultEnum.ActionResult.Success => NoContent(),
-                _ => StatusCode(500)
-            };
+
+            return ResultMappingExtensions.ToActionResult(result, null, false);
         }
 
         [HttpPatch("{id}/deactivate")]
@@ -145,14 +122,8 @@ namespace API_Layer.Controllers
         public async Task<IActionResult> DeactivateUserAsync(int id)
         {
             var result = await _userService.DeactivateUserAsync(id);
-            return result switch
-            {
-                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
-                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
-                ActionResultEnum.ActionResult.AlreadyInactive => BadRequest("User is already inactive"),
-                ActionResultEnum.ActionResult.Success => NoContent(),
-                _ => StatusCode(500)
-            };
+
+            return ResultMappingExtensions.ToActionResult(result, "User has been deactivated", false);
         }
 
         [HttpPatch("{id}/activate")]
@@ -167,14 +138,8 @@ namespace API_Layer.Controllers
         public async Task<IActionResult> ActivateUserAsync(int id)
         {
             var result = await _userService.ActivateUserAsync(id);
-            return result switch
-            {
-                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
-                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
-                ActionResultEnum.ActionResult.AlreadyActive => BadRequest("User is already active"),
-                ActionResultEnum.ActionResult.Success => NoContent(),
-                _ => StatusCode(500)
-            };
+
+            return ResultMappingExtensions.ToActionResult(result, "User has been activated", false);
         }
 
         //Ownership Policy
@@ -191,19 +156,16 @@ namespace API_Layer.Controllers
             var authResult = await authorizationService.AuthorizeAsync(User, id, "UserOwnerOrSuperOrAdmin");
 
             if (!authResult.Succeeded)
-                return Forbid();
+                return StatusCode(403, new ProblemDetails
+                {
+                    Title = "Forbidden",
+                    Detail = "You don’t have permission to perform this action",
+                    Status = 403
+                });
 
             var result = await _userService.UpdatePassword(id, req.NewPassword, req.CurrentPassword);
 
-            return result switch
-            {
-                ActionResultEnum.ActionResult.InvalidData => BadRequest("Invalid data"),
-                ActionResultEnum.ActionResult.NotFound => NotFound("User not found"),
-                ActionResultEnum.ActionResult.InvalidPassword => BadRequest("Invalid current password"),
-                ActionResultEnum.ActionResult.WeakPassword => BadRequest("New password does not meet strength requirements"),
-                ActionResultEnum.ActionResult.Success => NoContent(),
-                _ => StatusCode(500)
-            };
+            return ResultMappingExtensions.ToActionResult(result, "Password has been updated", false);
         }
     }
 }

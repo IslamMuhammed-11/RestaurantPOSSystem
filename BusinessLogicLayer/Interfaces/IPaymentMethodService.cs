@@ -1,20 +1,20 @@
 using Contracts.DTOs.PaymentMethodDTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Interfaces
 {
     public interface IPaymentMethodService
     {
+        Task<Result<PaymentMethodResponse>> AddNewMethodAsync(CreatePaymentMethodRequest dto);
 
-        Task<int?> AddNewMethodAsync(CreatePaymentMethodRequest dto);
+        Task<Result<List<PaymentMethodResponse>>> GetAllMethodsAsync();
 
-        Task<List<PaymentMethodResponse>> GetAllMethodsAsync();
+        Task<Result<PaymentMethodResponse?>> GetMethodByIdAsync(int id);
 
-        Task<PaymentMethodResponse?> GetMethodByIdAsync(int id);
+        Task<Result<PaymentMethodResponse>> UpdateMethodAsync(int id, UpdatePaymentMethodRequest dto);
 
-        Task<bool> UpdateMethodAsync(int id, UpdatePaymentMethodRequest dto);
-
-        Task<bool> DeleteMethodAsync(int id);
+        Task<Result<bool>> DeleteMethodAsync(int id);
     }
 }

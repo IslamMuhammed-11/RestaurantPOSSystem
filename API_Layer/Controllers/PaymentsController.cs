@@ -1,9 +1,7 @@
+using API_Layer.Mapping;
 using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.PaymentDTOs;
-using Contracts.Enums;
-using Contracts.Exceptions;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -31,23 +29,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetPaymentByOrderIDAsync(int orderId)
         {
-            if (orderId <= 0)
-                return BadRequest("ID must be non negative number");
+            var result = await _paymentService.GetPaymentByOrderIdAsync(orderId);
 
-            try
-            {
-                var payment = await _paymentService.GetPaymentByOrderIdAsync(orderId);
-                return Ok(payment);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpGet(Name = "GetAllPayments")]
@@ -58,15 +42,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllPaymentsAsync()
         {
-            try
-            {
-                var payments = await _paymentService.GetAllPaymentsAsync();
-                return Ok(payments);
-            }
-            catch (BusinessException ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            var result = await _paymentService.GetAllPaymentsAsync();
+
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpPost("orders/{orderId}/payments")]
@@ -80,37 +58,12 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> CreatePaymentAsync(int orderId, [FromBody] CreatePaymentRequest payment)
         {
-            if (payment == null || !payment.IsValid())
-                return BadRequest("Invalid payment data");
+            var result = await _paymentService.CreateNewPaymentAsync(orderId, payment);
 
-            try
-            {
-                int? id = await _paymentService.CreateNewPaymentAsync(orderId, payment);
-                if (!id.HasValue)
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create payment");
+            if (!result.IsSuccess)
+                return ResultMappingExtensions.ToActionResult(result);
 
-                var created = await _paymentService.GetPaymentByPaymentIdAsync(id.Value);
-
-                var response = new CreatePaymentCreatedResponse
-                {
-                    PaymentID = id.Value,
-                    OrderID = created?.OrderID ?? orderId,
-                    PaidAmount = created?.PaymentAmount ?? payment.PaymentAmount
-                };
-
-                return CreatedAtRoute("GetPaymentByOrderID", new { orderId = response.OrderID }, response);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    ActionResultEnum.ActionResult.DBError => StatusCode(StatusCodes.Status500InternalServerError, ex.Message),
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.Conflict => Conflict(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return CreatedAtRoute("GetPaymentByOrderID", new { orderId = result.Value.OrderID }, result.Value);
         }
     }
 }

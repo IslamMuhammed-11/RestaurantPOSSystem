@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Interfaces
 {
@@ -12,6 +13,6 @@ namespace BusinessLogicLayer.Interfaces
     {
         public Task<bool> LogProductSalesAsync(int orderID);
 
-        public Task<ProductSalesResponse> GetTopProductsAsync(RangedQuery query);
+        public Task<Result<ProductSalesResponse>> GetTopProductsAsync(RangedQuery query);
     }
 }

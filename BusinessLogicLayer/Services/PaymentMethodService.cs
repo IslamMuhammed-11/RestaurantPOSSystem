@@ -6,6 +6,7 @@ using Contracts.Exceptions;
 using DataAccessLayer.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Services
 {
@@ -18,71 +19,80 @@ namespace BusinessLogicLayer.Services
             _repo = repo;
         }
 
-        public async Task<int?> AddNewMethodAsync(CreatePaymentMethodRequest dto)
+        public async Task<Result<PaymentMethodResponse>> AddNewMethodAsync(CreatePaymentMethodRequest dto)
         {
             if (dto == null || !dto.IsValid())
-                throw new BusinessException("Invalid payment method data.", 92000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentMethodResponse>.Failure(new Error("Invalid payment method data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var entity = PaymentMethodMap.ToEntity(dto);
             int? id = await _repo.AddNewMethod(entity);
-            if (!id.HasValue)
-                throw new BusinessException("Failed to create payment method.", 92002, ActionResultEnum.ActionResult.DBError);
 
-            dto.SetID(id.Value);
-            return id;
+            if (!id.HasValue)
+                return Result<PaymentMethodResponse>.Failure(new Error("Failed to add payment method.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            var response = new PaymentMethodResponse
+            {
+                MethodID = id.Value,
+                PaymentMethod = dto.PaymentMethod
+            };
+
+            return Result<PaymentMethodResponse>.Success(response);
         }
 
-        public async Task<List<PaymentMethodResponse>> GetAllMethodsAsync()
+        public async Task<Result<List<PaymentMethodResponse>>> GetAllMethodsAsync()
         {
             var entities = await _repo.GetAllMethods();
-            return PaymentMethodMap.ToReadDTOList(entities);
+            return Result<List<PaymentMethodResponse>>.Success(PaymentMethodMap.ToReadDTOList(entities));
         }
 
-        public async Task<PaymentMethodResponse?> GetMethodByIdAsync(int id)
+        public async Task<Result<PaymentMethodResponse?>> GetMethodByIdAsync(int id)
         {
             if (id <= 0)
-                throw new BusinessException("Invalid payment method id.", 92000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentMethodResponse?>.Failure(new Error("Invalid payment method id.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existing = await _repo.GetMethodByIdAsync(id);
             if (existing == null)
-                throw new BusinessException("Payment method not found.", 92001, ActionResultEnum.ActionResult.NotFound);
-
-            return PaymentMethodMap.ToReadDTO(existing);
+                return Result<PaymentMethodResponse?>.Failure(new Error("Payment method not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
+            return Result<PaymentMethodResponse?>.Success(PaymentMethodMap.ToReadDTO(existing));
         }
 
-        public async Task<bool> UpdateMethodAsync(int id, UpdatePaymentMethodRequest dto)
+        public async Task<Result<PaymentMethodResponse>> UpdateMethodAsync(int id, UpdatePaymentMethodRequest dto)
         {
             if (id <= 0 || dto == null || !dto.IsValid())
-                throw new BusinessException("Invalid payment method data.", 92000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentMethodResponse>.Failure(new Error("Invalid payment method data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existing = await _repo.GetMethodByIdAsync(id);
             if (existing == null)
-                throw new BusinessException("Payment method not found.", 92001, ActionResultEnum.ActionResult.NotFound);
-
+                return Result<PaymentMethodResponse>.Failure(new Error("Payment method not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
             bool ok = PaymentMethodMap.ToEntity(dto, existing);
             if (!ok)
-                throw new BusinessException("Invalid payment method data.", 92000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<PaymentMethodResponse>.Failure(new Error("Invalid payment method data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             bool updated = await _repo.UpdateMethod(existing);
-            if (!updated)
-                throw new BusinessException("Failed to update payment method.", 92003, ActionResultEnum.ActionResult.DBError);
 
-            return true;
+            if (!updated)
+                return Result<PaymentMethodResponse>.Failure(new Error("Failed to update payment method.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            var response = new PaymentMethodResponse
+            {
+                MethodID = existing.MethodID,
+                PaymentMethod = existing.PaymentMethod
+            };
+
+            return Result<PaymentMethodResponse>.Success(response);
         }
 
-        public async Task<bool> DeleteMethodAsync(int id)
+        public async Task<Result<bool>> DeleteMethodAsync(int id)
         {
             if (id <= 0)
-                throw new BusinessException("Invalid payment method id.", 92000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error("Invalid payment method id.", ErrorCodes.enErrorCodes.INVALID_DATA));
             var existing = await _repo.GetMethodByIdAsync(id);
             if (existing == null)
-                throw new BusinessException("Payment method not found.", 92001, ActionResultEnum.ActionResult.NotFound);
+                return Result<bool>.Failure(new Error("Payment method not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             bool deleted = await _repo.DeleteMethod(id);
-            if (!deleted)
-                throw new BusinessException("Failed to delete payment method.", 92003, ActionResultEnum.ActionResult.DBError);
 
-            return true;
+            return Result<bool>.Success(deleted);
         }
     }
 }

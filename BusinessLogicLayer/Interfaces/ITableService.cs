@@ -5,19 +5,20 @@ using System.Text;
 using System.Threading.Tasks;
 using Contracts.Enums;
 using Contracts.DTOs.TableDTOs;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Interfaces
 {
     public interface ITableService
     {
-        Task<int?> AddNewTableAsync(CreateTableRequest table);
+        Task<Result<TableResponse>> AddNewTableAsync(CreateTableRequest table);
 
-        Task<TableResponse?> GetTableByIDAsync(int id);
+        Task<Result<TableResponse>> GetTableByIDAsync(int id);
 
-        Task<List<TableResponse>> GetAllTablesAsync();
+        Task<Result<List<TableResponse>>> GetAllTablesAsync();
 
-        Task<bool> UpdateTableAsync(int ID, UpdateTableRequest table);
+        Task<Result<bool>> UpdateTableAsync(int ID, UpdateTableRequest table);
 
-        Task<bool> DeleteTableByIDAsync(int id);
+        Task<Result<bool>> DeleteTableByIDAsync(int id);
     }
 }

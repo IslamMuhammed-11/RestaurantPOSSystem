@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Services
 {
@@ -21,71 +22,78 @@ namespace BusinessLogicLayer.Services
             _tableRepo = tableRepo;
         }
 
-        public async Task<int?> AddNewTableAsync(CreateTableRequest table)
+        public async Task<Result<TableResponse>> AddNewTableAsync(CreateTableRequest table)
         {
             if (table == null || !table.IsValid())
-                throw new BusinessException("Invalid table data.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<TableResponse>.Failure(new Error("Invalid table data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var entity = TableMap.ToEntity(table);
             int? id = await _tableRepo.CreateTableAsync(entity);
-            if (!id.HasValue)
-                throw new BusinessException("Failed to create table.", 80002, ActionResultEnum.ActionResult.DBError);
 
-            return id;
+            if (!id.HasValue)
+                return Result<TableResponse>.Failure(new Error("Failed to create table.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            var response = new TableResponse
+            {
+                TableID = id.Value,
+                Status = TableStatusEnum.enTableStatus.Available,
+                Seats = entity.NumberOfSeats
+            };
+
+            return Result<TableResponse>.Success(response);
         }
 
-        public async Task<TableResponse?> GetTableByIDAsync(int id)
+        public async Task<Result<TableResponse>> GetTableByIDAsync(int id)
         {
             if (id < 0)
-                throw new BusinessException("Invalid table ID.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<TableResponse>.Failure(new Error("Invalid table ID.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var entity = await _tableRepo.GetTableByIdAsync(id);
             if (entity == null)
-                throw new BusinessException("Table not found.", 80001, ActionResultEnum.ActionResult.NotFound);
+                return Result<TableResponse>.Failure(new Error("Table not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            return TableMap.ToReadDTO(entity);
+            return Result<TableResponse>.Success(TableMap.ToReadDTO(entity));
         }
 
-        public async Task<List<TableResponse>> GetAllTablesAsync()
+        public async Task<Result<List<TableResponse>>> GetAllTablesAsync()
         {
             var tables = await _tableRepo.GetAllTablesAsync();
-            return TableMap.ToReadDTOList(tables);
+            return Result<List<TableResponse>>.Success(TableMap.ToReadDTOList(tables));
         }
 
-        public async Task<bool> UpdateTableAsync(int ID, UpdateTableRequest table)
+        public async Task<Result<bool>> UpdateTableAsync(int ID, UpdateTableRequest table)
         {
             if (table == null || ID < 0)
-                throw new BusinessException("Invalid table data.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error("Invalid table data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existing = await _tableRepo.GetTableByIdAsync(ID);
             if (existing == null)
-                throw new BusinessException("Table not found.", 80001, ActionResultEnum.ActionResult.NotFound);
+                return Result<bool>.Failure(new Error("Table not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             bool ok = TableMap.ToEntity(table, existing);
             if (!ok)
-                throw new BusinessException("Invalid table data.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error("Invalid table data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             bool updated = await _tableRepo.UpdateTableAsync(existing);
-            if (!updated)
-                throw new BusinessException("Failed to update table.", 80002, ActionResultEnum.ActionResult.DBError);
 
-            return true;
+            if (!updated)
+                return Result<bool>.Failure(new Error("Failed to update table.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            return Result<bool>.Success(updated);
         }
 
-        public async Task<bool> DeleteTableByIDAsync(int id)
+        public async Task<Result<bool>> DeleteTableByIDAsync(int id)
         {
             if (id < 0)
-                throw new BusinessException("Invalid table ID.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error("Invalid table ID.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existing = await _tableRepo.GetTableByIdAsync(id);
             if (existing == null)
-                throw new BusinessException("Table not found.", 80001, ActionResultEnum.ActionResult.NotFound);
+                return Result<bool>.Failure(new Error("Table not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             bool deleted = await _tableRepo.DeleteTableAsync(id);
-            if (!deleted)
-                throw new BusinessException("Failed to delete table.", 80002, ActionResultEnum.ActionResult.DBError);
 
-            return true;
+            return Result<bool>.Success(deleted);
         }
     }
 }

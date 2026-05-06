@@ -1,5 +1,4 @@
-﻿using Contracts.Enums;
-using Contracts.Exceptions;
+﻿using Contracts.Exceptions;
 using DataAccessLayer.Entites;
 using DataAccessLayer.Interfaces;
 using Microsoft.Data.SqlClient;
@@ -27,63 +26,55 @@ namespace DataAccessLayer.Repos
             cmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = id;
             OrderEntity order;
             List<ItemsEntity> items = new List<ItemsEntity>();
-            try
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                order = new OrderEntity
                 {
-                    order = new OrderEntity
+                    OrderID = (int)reader["OrderID"],
+
+                    CustomerID = reader["CustomerID"] == DBNull.Value ? null : (int?)reader["CustomerID"],
+
+                    CreatedByUserID = (int)reader["UserID"],
+                    Username = reader["Username"].ToString() ?? string.Empty,
+
+                    TableID = reader["TableID"] == DBNull.Value ? null : (int?)reader["TableID"],
+
+                    TotalPrice = Convert.ToDecimal(reader["TotalPrice"]),
+
+                    OrderStatus = (OrderEntity.enOrderStatus)Convert.ToInt32(reader["OrderStatus"]),
+                    StatusName = reader["StatusName"].ToString() ?? string.Empty,
+
+                    OrderType = (OrderEntity.enOrderType)Convert.ToInt32(reader["OrderType"]),
+                    OrderTypeName = reader["OrderTypeName"].ToString() ?? string.Empty,
+
+                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                    UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(reader["UpdatedAt"]),
+
+                    notes = reader["Notes"]?.ToString()
+                };
+
+                await reader.NextResultAsync();
+
+                while (reader.Read())
+                {
+                    items.Add(new ItemsEntity
                     {
-                        OrderID = (int)reader["OrderID"],
-
-                        CustomerID = reader["CustomerID"] == DBNull.Value ? null : (int?)reader["CustomerID"],
-
-                        CreatedByUserID = (int)reader["UserID"],
-                        Username = reader["Username"].ToString() ?? string.Empty,
-
-                        TableID = reader["TableID"] == DBNull.Value ? null : (int?)reader["TableID"],
-
-                        TotalPrice = Convert.ToDecimal(reader["TotalPrice"]),
-
-                        OrderStatus = (OrderEntity.enOrderStatus)Convert.ToInt32(reader["OrderStatus"]),
-                        StatusName = reader["StatusName"].ToString() ?? string.Empty,
-
-                        OrderType = (OrderEntity.enOrderType)Convert.ToInt32(reader["OrderType"]),
-                        OrderTypeName = reader["OrderTypeName"].ToString() ?? string.Empty,
-
-                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                        UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(reader["UpdatedAt"]),
-
-                        notes = reader["Notes"]?.ToString()
-                    };
-
-                    await reader.NextResultAsync();
-
-                    while (reader.Read())
-                    {
-                        items.Add(new ItemsEntity
-                        {
-                            ItemID = (int)reader["ItemID"],
-                            OrderID = id,
-                            Price = (decimal)reader["UnitPrice"],
-                            ProductID = (int)reader["ProductID"],
-                            ProductName = (string)reader["ProductName"],
-                            Quantity = (byte)reader["Quantity"]
-                        });
-                    }
+                        ItemID = (int)reader["ItemID"],
+                        OrderID = id,
+                        Price = (decimal)reader["UnitPrice"],
+                        ProductID = (int)reader["ProductID"],
+                        ProductName = (string)reader["ProductName"],
+                        Quantity = (byte)reader["Quantity"]
+                    });
                 }
-                else
-                    return null;
             }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
-            }
+            else
+                return null;
 
             return new OrderAndItemsEntity
             {
@@ -99,45 +90,37 @@ namespace DataAccessLayer.Repos
 
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add("@OrderID", SqlDbType.Int).Value = id;
-            try
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new OrderEntity
                 {
-                    return new OrderEntity
-                    {
-                        OrderID = (int)reader["OrderID"],
+                    OrderID = (int)reader["OrderID"],
 
-                        CustomerID = reader["CustomerID"] == DBNull.Value ? null : (int?)reader["CustomerID"],
+                    CustomerID = reader["CustomerID"] == DBNull.Value ? null : (int?)reader["CustomerID"],
 
-                        CreatedByUserID = (int)reader["UserID"],
-                        Username = reader["Username"].ToString() ?? string.Empty,
+                    CreatedByUserID = (int)reader["UserID"],
+                    Username = reader["Username"].ToString() ?? string.Empty,
 
-                        TableID = reader["TableID"] == DBNull.Value ? null : (int?)reader["TableID"],
+                    TableID = reader["TableID"] == DBNull.Value ? null : (int?)reader["TableID"],
 
-                        TotalPrice = Convert.ToDecimal(reader["TotalPrice"]),
+                    TotalPrice = Convert.ToDecimal(reader["TotalPrice"]),
 
-                        OrderStatus = (OrderEntity.enOrderStatus)Convert.ToInt32(reader["OrderStatus"]),
-                        StatusName = reader["StatusName"].ToString() ?? string.Empty,
+                    OrderStatus = (OrderEntity.enOrderStatus)Convert.ToInt32(reader["OrderStatus"]),
+                    StatusName = reader["StatusName"].ToString() ?? string.Empty,
 
-                        OrderType = (OrderEntity.enOrderType)Convert.ToInt32(reader["OrderType"]),
-                        OrderTypeName = reader["OrderTypeName"].ToString() ?? string.Empty,
+                    OrderType = (OrderEntity.enOrderType)Convert.ToInt32(reader["OrderType"]),
+                    OrderTypeName = reader["OrderTypeName"].ToString() ?? string.Empty,
 
-                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                        UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(reader["UpdatedAt"]),
+                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                    UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(reader["UpdatedAt"]),
 
-                        notes = reader["Notes"]?.ToString()
-                    };
-                }
-            }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                    notes = reader["Notes"]?.ToString()
+                };
             }
 
             return null;
@@ -146,49 +129,42 @@ namespace DataAccessLayer.Repos
         public async Task<List<OrderEntity>> GetAllOrdersAsync()
         {
             List<OrderEntity> orders = new List<OrderEntity>();
-            try
+
+            using SqlConnection connection = new SqlConnection(_ConnString);
+            using SqlCommand cmd = new SqlCommand("SP_GetAllOrders", connection);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
             {
-                using SqlConnection connection = new SqlConnection(_ConnString);
-                using SqlCommand cmd = new SqlCommand("SP_GetAllOrders", connection);
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                while (await reader.ReadAsync())
+                orders.Add(new OrderEntity
                 {
-                    orders.Add(new OrderEntity
-                    {
-                        OrderID = (int)reader["OrderID"],
+                    OrderID = (int)reader["OrderID"],
 
-                        CustomerID = reader["CustomerID"] == DBNull.Value ? null : (int?)reader["CustomerID"],
+                    CustomerID = reader["CustomerID"] == DBNull.Value ? null : (int?)reader["CustomerID"],
 
-                        CreatedByUserID = (int)reader["UserID"],
-                        Username = reader["Username"].ToString() ?? string.Empty,
+                    CreatedByUserID = (int)reader["UserID"],
+                    Username = reader["Username"].ToString() ?? string.Empty,
 
-                        TableID = reader["TableID"] == DBNull.Value ? null : (int?)reader["TableID"],
+                    TableID = reader["TableID"] == DBNull.Value ? null : (int?)reader["TableID"],
 
-                        TotalPrice = Convert.ToDecimal(reader["TotalPrice"]),
+                    TotalPrice = Convert.ToDecimal(reader["TotalPrice"]),
 
-                        OrderStatus = (OrderEntity.enOrderStatus)Convert.ToInt32(reader["OrderStatus"]),
-                        StatusName = reader["StatusName"].ToString() ?? string.Empty,
+                    OrderStatus = (OrderEntity.enOrderStatus)Convert.ToInt32(reader["OrderStatus"]),
+                    StatusName = reader["StatusName"].ToString() ?? string.Empty,
 
-                        OrderType = (OrderEntity.enOrderType)Convert.ToInt32(reader["OrderType"]),
-                        OrderTypeName = reader["OrderTypeName"].ToString() ?? string.Empty,
+                    OrderType = (OrderEntity.enOrderType)Convert.ToInt32(reader["OrderType"]),
+                    OrderTypeName = reader["OrderTypeName"].ToString() ?? string.Empty,
 
-                        CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                        UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(reader["UpdatedAt"]),
+                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                    UpdatedAt = reader["UpdatedAt"] == DBNull.Value ? null : (DateTime?)Convert.ToDateTime(reader["UpdatedAt"]),
 
-                        notes = reader["Notes"]?.ToString()
-                    });
-                }
-            }
-            catch (SqlException ex)
-            {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                    notes = reader["Notes"]?.ToString()
+                });
             }
 
             return orders;
@@ -227,16 +203,9 @@ namespace DataAccessLayer.Repos
             {
                 throw ex.Number switch
                 {
-                    50001 => new BusinessException("Invalid ProductID", 50001, ActionResultEnum.ActionResult.InvalidData),
-                    50002 => new BusinessException("Product Isn't Available", 50002, ActionResultEnum.ActionResult.Conflict),
-                    50003 => new BusinessException("No Order Items Sent!", 50003, ActionResultEnum.ActionResult.InvalidData),
-                    50004 => new BusinessException("Invalid Quantity", 50004, ActionResultEnum.ActionResult.InvalidData),
-                    50005 => new BusinessException("Table not available", 50005, ActionResultEnum.ActionResult.Conflict),
-                    50006 => new BusinessException("Invalid TableID", 50006, ActionResultEnum.ActionResult.InvalidData),
-                    50007 => new BusinessException("Invalid Order Type", 50007, ActionResultEnum.ActionResult.InvalidData),
-                    50009 => new BusinessException("TableID is required for DineIn", 50009, ActionResultEnum.ActionResult.InvalidData),
-
-                    _ => new BusinessException("Database error occurred", 99999, ActionResultEnum.ActionResult.DBError)
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
                 };
             }
             if (param.Value == DBNull.Value)
@@ -272,9 +241,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -305,9 +277,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -332,9 +307,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                //DataAccessSettings.LogEvent(ex.Message, System.Diagnostics.EventLogEntryType.Error);
-
-                throw new BusinessException(ex.Message, 99999, ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
             return RowsAffected > 0;
         }

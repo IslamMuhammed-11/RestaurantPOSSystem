@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Services
 {
@@ -22,17 +23,17 @@ namespace BusinessLogicLayer.Services
             _productSalesRepo = productSalesRepo;
         }
 
-        public async Task<ProductSalesResponse> GetTopProductsAsync(RangedQuery query)
+        public async Task<Result<ProductSalesResponse>> GetTopProductsAsync(RangedQuery query)
         {
             if (!query.Validate())
-                throw new BusinessException("Invalid period.", 8546, ActionResultEnum.ActionResult.InvalidData);
+                return Result<ProductSalesResponse>.Failure(new Error("Invalid period.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             query.Periodic = query.ResolvePeriod();
 
             var topProducts = await _productSalesRepo.TopFiveProductsInPeriodAsync(query.Periodic.from, query.Periodic.to);
 
             if (topProducts.Count == 0)
-                return new ProductSalesResponse();
+                return Result<ProductSalesResponse>.Success(new ProductSalesResponse());
 
             List<ProductSaleRecord> list = ProductSalesMap.ToProductSalesList(topProducts);
 
@@ -40,7 +41,7 @@ namespace BusinessLogicLayer.Services
 
             response.TopProducts = list;
 
-            return response;
+            return Result<ProductSalesResponse>.Success(response);
         }
 
         public async Task<bool> LogProductSalesAsync(int orderID)

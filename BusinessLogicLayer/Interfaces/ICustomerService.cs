@@ -5,14 +5,20 @@ using System.Text;
 using System.Threading.Tasks;
 using Contracts.Enums;
 using Contracts.DTOs.CustomerDTOs;
+using Contracts.Result;
+
 namespace BusinessLogicLayer.Interfaces
 {
     public interface ICustomerService
     {
-            Task<int?> AddNewCustomerAsync(CreateCustomerRequest customer);
-            Task<ActionResultEnum.ActionResult> UpdateCustomerAsync(int ID, UpdateCustomerRequest customer);
-            Task<CustomerResponse?> GetCustomerByIDAsync(int id);
-            Task<List<CustomerResponse>> GetAllCustomersAsync();
-            Task<ActionResultEnum.ActionResult> DeleteCustomerByIDAsync(int id);
+        Task<Result<CustomerResponse>> AddNewCustomerAsync(CreateCustomerRequest customer);
+
+        Task<Result<CustomerResponse>> UpdateCustomerAsync(int ID, UpdateCustomerRequest customer);
+
+        Task<Result<CustomerResponse>> GetCustomerByIDAsync(int id);
+
+        Task<Result<List<CustomerResponse>>> GetAllCustomersAsync();
+
+        Task<Result<bool>> DeleteCustomerByIDAsync(int id);
     }
 }

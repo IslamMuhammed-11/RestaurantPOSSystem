@@ -1,5 +1,6 @@
 ﻿using Contracts.DTOs.OrderDTOs;
 using Contracts.Enums;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Interfaces
 {
@@ -14,18 +15,18 @@ namespace BusinessLogicLayer.Interfaces
             Cancelled = 5
         }
 
-        Task<int?> CreateOrderAsync(CreateOrderRequest order, int createdByUserId);
+        Task<Result<OrderWithItemsResponse>> CreateOrderAsync(CreateOrderRequest order, int createdByUserId);
 
-        Task<List<OrderResponse>> GetAllOrdersAsync();
+        Task<Result<List<OrderResponse>>> GetAllOrdersAsync();
 
-        Task<OrderWithItemsResponse> GetOrderAndItemsByIdAsync(int orderId);
+        Task<Result<OrderWithItemsResponse>> GetOrderAndItemsByIdAsync(int orderId);
 
-        Task<OrderResponse> GetOrderByIdAsync(int orderId);
+        Task<Result<OrderResponse>> GetOrderByIdAsync(int orderId);
 
         Task<bool> UpdateOrderAsync(int orderId, UpdateOrderRequest order);
 
-        Task<bool> ChangeOrderStatus(int Id, enOrderStatus OrderStatus);
+        Task<Result<bool>> ChangeOrderStatus(int Id, enOrderStatus OrderStatus);
 
-        Task<bool> ChangeTable(int Id, ChangeTableRequest req);
+        Task<Result<bool>> ChangeTable(int Id, ChangeTableRequest req);
     }
 }

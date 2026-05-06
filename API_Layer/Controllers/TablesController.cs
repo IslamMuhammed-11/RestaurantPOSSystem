@@ -1,4 +1,5 @@
-﻿using BusinessLogicLayer.Interfaces;
+﻿using API_Layer.Mapping;
+using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.TableDTOs;
 using Contracts.Enums;
 using Contracts.Exceptions;
@@ -31,23 +32,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetTableByIDAsync(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _tableService.GetTableByIDAsync(id);
 
-            try
-            {
-                var table = await _tableService.GetTableByIDAsync(id);
-                return Ok(table);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpGet()]
@@ -58,15 +45,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllTablesAsync()
         {
-            try
-            {
-                var tables = await _tableService.GetAllTablesAsync();
-                return Ok(tables);
-            }
-            catch (BusinessException ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
+            var result = await _tableService.GetAllTablesAsync();
+
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpPost()]
@@ -78,27 +59,12 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AddNewTableAsync(CreateTableRequest table)
         {
-            if (table == null || !table.IsValid())
-                return BadRequest("Invalid table data");
+            var result = await _tableService.AddNewTableAsync(table);
 
-            try
-            {
-                int? id = await _tableService.AddNewTableAsync(table);
-                if (id == null)
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create table");
+            if (!result.IsSuccess)
+                return ResultMappingExtensions.ToActionResult(result);
 
-                table.SetID(id.Value);
-                return CreatedAtRoute("GetTableByID", new { id = id.Value }, table);
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    ActionResultEnum.ActionResult.DBError => StatusCode(StatusCodes.Status500InternalServerError, ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return CreatedAtRoute("GetTableByID", new { id = result.Value.TableID }, result.Value);
         }
 
         [HttpPut("{id}", Name = "UpdateTable")]
@@ -111,25 +77,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         private async Task<IActionResult> UpdateTableAsync(int id, UpdateTableRequest table)
         {
-            if (id <= 0 || table == null)
-                return BadRequest("Invalid data");
+            var result = await _tableService.UpdateTableAsync(id, table);
 
-            try
-            {
-                bool updated = await _tableService.UpdateTableAsync(id, table);
-                if (updated)
-                    return Ok("Table updated successfully");
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to update table");
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
 
         [HttpDelete("{id}", Name = "DeleteTableByID")]
@@ -142,25 +92,9 @@ namespace API_Layer.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteTableByIDAsync(int id)
         {
-            if (id <= 0)
-                return BadRequest("Invalid ID");
+            var result = await _tableService.DeleteTableByIDAsync(id);
 
-            try
-            {
-                bool deleted = await _tableService.DeleteTableByIDAsync(id);
-                if (deleted)
-                    return NoContent();
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to delete table");
-            }
-            catch (BusinessException ex)
-            {
-                return ex.ErrorType switch
-                {
-                    ActionResultEnum.ActionResult.NotFound => NotFound(ex.Message),
-                    ActionResultEnum.ActionResult.InvalidData => BadRequest(ex.Message),
-                    _ => StatusCode(StatusCodes.Status500InternalServerError, ex.Message)
-                };
-            }
+            return ResultMappingExtensions.ToActionResult(result);
         }
     }
 }

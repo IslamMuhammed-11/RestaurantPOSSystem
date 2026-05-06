@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 using Contracts.DTOs.ReportsDTOs.SalesReports;
 using Contracts.Queries.ReportsQueries;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Interfaces
 {
@@ -14,10 +15,10 @@ namespace BusinessLogicLayer.Interfaces
     {
         public Task<bool> LogDailySalesAsync(decimal amount);
 
-        public Task<SalesComparisonResponse> GetSalesComparisonAsync(SalesComparisonQuery query);
+        public Task<Result<SalesComparisonResponse>> GetSalesComparisonAsync(SalesComparisonQuery query);
 
-        public Task<SalesDetailsResponse> GetSalesDetailsAsync(RangedQuery query);
+        public Task<Result<SalesDetailsResponse>> GetSalesDetailsAsync(RangedQuery query);
 
-        public Task<SaleTrendsResponse> GetSalesTrendsAsync(PeriodicQuery query);
+        public Task<Result<SaleTrendsResponse>> GetSalesTrendsAsync(PeriodicQuery query);
     }
 }

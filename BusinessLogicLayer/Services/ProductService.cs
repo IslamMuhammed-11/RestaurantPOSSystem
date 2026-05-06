@@ -2,13 +2,8 @@ using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Mapping;
 using Contracts.DTOs.ProductDTOs;
 using Contracts.Enums;
-using Contracts.Exceptions;
+using Contracts.Result;
 using DataAccessLayer.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Data;
 
 namespace BusinessLogicLayer.Services
@@ -24,107 +19,115 @@ namespace BusinessLogicLayer.Services
             _categoryService = categoryService;
         }
 
-        public async Task<int?> AddNewProductAsync(CreateProductRequest product)
+        public async Task<Result<ProductResponse>> AddNewProductAsync(CreateProductRequest product)
         {
             if (product == null || !product.IsValid())
-                throw new BusinessException("Invalid product data.", 70000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<ProductResponse>.Failure(new Error("Invalid product data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
-            if (!await _categoryService.DoesCategoryExistsAsync(product.CategoryID))
-                throw new BusinessException("Category not found.", 60001, ActionResultEnum.ActionResult.NotFound);
+            var doesExists = await _categoryService.DoesCategoryExistsAsync(product.CategoryID);
+
+            if (!doesExists.IsSuccess || !doesExists.Value)
+                return Result<ProductResponse>.Failure(new Error("Category not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             var entity = ProductMap.ToEntity(product);
 
             int? id = await _productRepo.CreateProductAsync(entity);
-            if (!id.HasValue)
-                throw new BusinessException("Failed to create product.", 70002, ActionResultEnum.ActionResult.DBError);
 
-            return id;
+            if (!id.HasValue)
+                return Result<ProductResponse>.Failure(new Error("Failed to create product.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            var response = new ProductResponse
+            {
+                ProductID = id.Value,
+                Name = product.Name,
+                IsAvailable = product.IsAvailable,
+                Price = product.Price,
+                CategoryID = product.CategoryID
+            };
+
+            return Result<ProductResponse>.Success(response);
         }
 
-        public async Task<ProductResponse?> GetProductByIDAsync(int id)
+        public async Task<Result<ProductResponse>> GetProductByIDAsync(int id)
         {
             if (id < 0)
-                throw new BusinessException("Invalid product ID.", 70000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<ProductResponse>.Failure(new Error("Invalid product ID.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var entity = await _productRepo.GetProductByIDAsync(id);
-            if (entity == null)
-                throw new BusinessException("Product not found.", 70001, ActionResultEnum.ActionResult.NotFound);
 
-            return ProductMap.ToReadDTO(entity);
+            if (entity == null)
+                return Result<ProductResponse>.Failure(new Error("Product not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
+
+            return Result<ProductResponse>.Success(ProductMap.ToReadDTO(entity));
         }
 
-        public async Task<List<ProductResponse>> GetAllProductsAsync()
+        public async Task<Result<List<ProductResponse>>> GetAllProductsAsync()
         {
             var products = await _productRepo.GetAllProductsAsync();
-            return ProductMap.ToReadDTOList(products);
+            return Result<List<ProductResponse>>.Success(ProductMap.ToReadDTOList(products));
         }
 
-        public async Task<bool> UpdateProductAsync(int ID, UpdateProductRequest product)
+        public async Task<Result<ProductResponse>> UpdateProductAsync(int ID, UpdateProductRequest product)
         {
             if (product == null || ID < 0)
-                throw new BusinessException("Invalid product data.", 70000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<ProductResponse>.Failure(new Error("Invalid product data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existing = await _productRepo.GetProductByIDAsync(ID);
             if (existing == null)
-                throw new BusinessException("Product not found.", 70001, ActionResultEnum.ActionResult.NotFound);
+                return Result<ProductResponse>.Failure(new Error("Product not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            if (product.CategoryID.HasValue)
-            {
-                if (!await _categoryService.DoesCategoryExistsAsync(product.CategoryID.Value))
-                    throw new BusinessException("Category not found.", 60001, ActionResultEnum.ActionResult.NotFound);
-            }
+            if (!product.CategoryID.HasValue)
+                return Result<ProductResponse>.Failure(new Error("Category ID is required.", ErrorCodes.enErrorCodes.INVALID_DATA));
+
+            var doesExists = await _categoryService.DoesCategoryExistsAsync(product.CategoryID.Value);
+
+            if (!doesExists.IsSuccess || !doesExists.Value)
+                return Result<ProductResponse>.Failure(new Error("Category not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             bool ok = ProductMap.ToEntity(product, existing);
             if (!ok)
-                throw new BusinessException("Invalid product data.", 70000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<ProductResponse>.Failure(new Error("Invalid product data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             bool updated = await _productRepo.UpdateProductAsync(existing);
-            if (!updated)
-                throw new BusinessException("Failed to update product.", 70002, ActionResultEnum.ActionResult.DBError);
 
-            return true;
+            if (!updated)
+                return Result<ProductResponse>.Failure(new Error("Failed to update product.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            var response = new ProductResponse
+            {
+                ProductID = existing.ProductID,
+                Name = existing.Name,
+                IsAvailable = existing.IsAvailable,
+                Price = existing.Price,
+                CategoryID = existing.CategoryID
+            };
+
+            return Result<ProductResponse>.Success(response);
         }
 
-        public async Task<bool> DeleteProductByIDAsync(int id)
+        public async Task<Result<bool>> DeleteProductByIDAsync(int id)
         {
             if (id < 0)
-                throw new BusinessException("Invalid product ID.", 70000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error("Invalid product ID.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existing = await _productRepo.GetProductByIDAsync(id);
             if (existing == null)
-                throw new BusinessException("Product not found.", 70001, ActionResultEnum.ActionResult.NotFound);
-
+                return Result<bool>.Failure(new Error("Product not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
             bool deleted = await _productRepo.DeleteProductAsync(id);
-            if (!deleted)
-                throw new BusinessException("Failed to delete product.", 70002, ActionResultEnum.ActionResult.DBError);
 
-            return true;
+            return Result<bool>.Success(deleted);
         }
 
-        public async Task<bool> DoesProductExistAsync(int id)
+        public async Task<Result<bool>> DoesProductExistAsync(int id)
         {
-            try
-            {
-                var existing = await _productRepo.DoesProductExistAsync(id);
-                return existing;
-            }
-            catch (BusinessException)
-            {
-                return false;
-            }
+            var existing = await _productRepo.DoesProductExistAsync(id);
+            return Result<bool>.Success(existing);
         }
 
-        public async Task<bool> IsProductAvailableAsync(int id)
+        public async Task<Result<bool>> IsProductAvailableAsync(int id)
         {
-            try
-            {
-                var available = await _productRepo.IsProductAvailableAsync(id);
-                return available;
-            }
-            catch (BusinessException)
-            {
-                return false;
-            }
+            var available = await _productRepo.IsProductAvailableAsync(id);
+            return Result<bool>.Success(available);
         }
 
         public async Task<List<int>> ValidateProducts(List<int> productIds)
@@ -138,15 +141,9 @@ namespace BusinessLogicLayer.Services
                 table.Rows.Add(id);
             }
 
-            try
-            {
-                var invalidProductIDs = await _productRepo.ValidateProducts(table);
-                return invalidProductIDs;
-            }
-            catch (BusinessException ex)
-            {
-                throw new BusinessException(ex.Message, 70002, ActionResultEnum.ActionResult.DBError);
-            }
+            var invalidProductIDs = await _productRepo.ValidateProducts(table);
+
+            return invalidProductIDs;
         }
     }
 }

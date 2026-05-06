@@ -1,14 +1,11 @@
 using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Mapping;
-using Contracts.DTOs.CategoryDTOs;
 using Contracts.DTOs.OrderDTOs;
 using Contracts.DTOs.OrderItemsDTOs;
 using Contracts.Enums;
-using Contracts.Exceptions;
+using Contracts.Result;
 using DataAccessLayer.Entites;
 using DataAccessLayer.Interfaces;
-using System.Reflection.Metadata.Ecma335;
-using System.Threading.Tasks;
 
 namespace BusinessLogicLayer.Services
 {
@@ -25,85 +22,99 @@ namespace BusinessLogicLayer.Services
             _orderService = orderService;
         }
 
-        public async Task<int?> AddNewItemAsync(CreateOrderItemRequest item, int orderId)
+        public async Task<Result<CreateOrderItemResponse>> AddNewItemAsync(CreateOrderItemRequest item, int orderId)
         {
             if (item == null || !item.IsValid())
-                throw new BusinessException("Invalid item data.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<CreateOrderItemResponse>.Failure(new Error("Invalid item data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
-            if (!await _productService.IsProductAvailableAsync(item.ProductID))
-                throw new BusinessException("Product Isn't Available Or Doesn't Exist", 80002, ActionResultEnum.ActionResult.InvalidData);
+            var product = await _productService.GetProductByIDAsync(item.ProductID);
+
+            if (!product.IsSuccess || !product.Value.IsAvailable)
+                return Result<CreateOrderItemResponse>.Failure(new Error("Product Isn't Available Or Doesn't Exist", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var order = await _orderService.GetOrderByIdAsync(orderId);
 
-            if (order == null)
-                throw new BusinessException("Order Not Found!", 80004, ActionResultEnum.ActionResult.NotFound);
+            if (!order.IsSuccess)
+                return Result<CreateOrderItemResponse>.Failure(new Error("Order Not Found!", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            if (!_CheckOrderStatus(order))
-                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, ActionResultEnum.ActionResult.Conflict);
+            if (!_CheckOrderStatus(order.Value))
+                return Result<CreateOrderItemResponse>.Failure(new Error("Can't make changes to the order because it's cancelled , ready or completed ", ErrorCodes.enErrorCodes.BUSINESS_RULE_VIOLATION));
 
             var entity = ItemMap.ToEntity(item, orderId);
 
             int? id = await _itemRepo.AddNewItemAsync(entity);
-            if (!id.HasValue)
-                throw new BusinessException("Failed to add item.", 80001, ActionResultEnum.ActionResult.DBError);
 
-            return id;
+            if (!id.HasValue)
+                return Result<CreateOrderItemResponse>.Failure(new Error("Failed to add new item.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            var response = new CreateOrderItemResponse
+            {
+                OrderItemID = id.Value,
+                ProductID = item.ProductID,
+                ProductName = product.Value.Name,
+                Quantity = item.Quantity
+            };
+
+            return Result<CreateOrderItemResponse>.Success(response);
         }
 
-        public async Task<OrderItemResponse?> GetItemByIdAsync(int id)
+        public async Task<Result<OrderItemResponse>> GetItemByIdAsync(int id)
         {
             if (id <= 0)
-                throw new BusinessException("Invalid item ID.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<OrderItemResponse>.Failure(new Error("Invalid item ID.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var entity = await _itemRepo.GetItemByIdAsync(id);
             if (entity == null)
-                return null;
+                return Result<OrderItemResponse>.Failure(new Error("Item not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            return ItemMap.ToReadDTO(entity);
+            return Result<OrderItemResponse>.Success(ItemMap.ToReadDTO(entity));
         }
 
-        public async Task<bool> UpdateItemsAsync(UpdateOrderItemRequest item)
+        public async Task<Result<bool>> UpdateItemsAsync(UpdateOrderItemRequest item)
         {
             if (item == null || !item.IsValid())
-                throw new BusinessException("Invalid item data.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error("Invalid item data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var existing = await _itemRepo.GetItemByIdAsync(item.ItemID);
             if (existing == null)
-                throw new BusinessException("Item not found.", 80001, ActionResultEnum.ActionResult.NotFound);
+                return Result<bool>.Failure(new Error("Item not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             if (item.ProductID.HasValue)
             {
-                if (!await _productService.IsProductAvailableAsync(item.ProductID.Value))
-                    throw new BusinessException("Product Isn't Available Or Doesn't Exist", 80002, ActionResultEnum.ActionResult.InvalidData);
+                var isProductAvailable = await _productService.IsProductAvailableAsync(item.ProductID.Value);
+
+                if (!isProductAvailable.IsSuccess || !isProductAvailable.Value)
+                    return Result<bool>.Failure(new Error("Product Isn't Available Or Doesn't Exist", ErrorCodes.enErrorCodes.INVALID_DATA));
             }
 
             bool ok = ItemMap.ToEntity(item, existing);
             if (!ok)
-                throw new BusinessException("Invalid item data.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error("Invalid item data.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             bool updated = await _itemRepo.UpdateItemsAsync(existing);
-            if (!updated)
-                throw new BusinessException("Failed to update item.", 80002, ActionResultEnum.ActionResult.DBError);
 
-            return true;
+            if (!updated)
+                return Result<bool>.Failure(new Error("Failed to update item.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            return Result<bool>.Success(updated);
         }
 
-        public async Task<bool> UpdateQuantityAsync(UpdateOrderItemQuantityRequest quantity, int orderID, int ItemId)
+        public async Task<Result<bool>> UpdateQuantityAsync(UpdateOrderItemQuantityRequest quantity, int orderID, int ItemId)
         {
             if (quantity.Quantity <= 0)
-                throw new BusinessException($"The sent quantity isn't valid {quantity.Quantity}", 80001, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error($"The sent quantity isn't valid {quantity.Quantity}", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var orderAndItems = await _orderService.GetOrderAndItemsByIdAsync(orderID);
 
-            if (orderAndItems.Order == null)
-                throw new BusinessException($"Order With This ID = {orderID} Was Not Found", 8050, ActionResultEnum.ActionResult.NotFound);
+            if (!orderAndItems.IsSuccess || orderAndItems.Value.Order == null)
+                return Result<bool>.Failure(new Error($"Order With This ID = {orderID} Was Not Found", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            if (!_CheckOrderStatus(orderAndItems.Order))
-                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, ActionResultEnum.ActionResult.Conflict);
+            if (!_CheckOrderStatus(orderAndItems.Value.Order))
+                return Result<bool>.Failure(new Error("Can't make changes to the order because it's cancelled , ready or completed ", ErrorCodes.enErrorCodes.BUSINESS_RULE_VIOLATION));
 
-            bool itemExist = orderAndItems.Items != null && orderAndItems.Items.Any(s => s.ItemID == ItemId);
+            bool itemExist = orderAndItems.Value.Items != null && orderAndItems.Value.Items.Any(s => s.ItemID == ItemId);
             if (!itemExist)
-                throw new BusinessException($"Item With This ID = {ItemId} Was Not Found In This Order {orderID}", 8050, ActionResultEnum.ActionResult.NotFound);
+                return Result<bool>.Failure(new Error($"Item With This ID = {ItemId} Was Not Found In This Order {orderID}", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             var ItemEntity = new ItemsEntity
             {
@@ -117,33 +128,34 @@ namespace BusinessLogicLayer.Services
             bool isUpdated = await _itemRepo.UpdateQuantityAsync(ItemEntity);
 
             if (!isUpdated)
-                throw new BusinessException("an unexpected error occured", 99999, ActionResultEnum.ActionResult.DBError);
+                return Result<bool>.Failure(new Error("Failed to update item quantity.", ErrorCodes.enErrorCodes.DB_ERROR));
 
-            return true;
+            return Result<bool>.Success(isUpdated);
         }
 
-        public async Task<bool> DeleteItemsAsync(int orderId, int ItemId)
+        public async Task<Result<bool>> DeleteItemsAsync(int orderId, int ItemId)
         {
             if (ItemId <= 0)
-                throw new BusinessException("Invalid item ID.", 80000, ActionResultEnum.ActionResult.InvalidData);
+                return Result<bool>.Failure(new Error("Invalid item ID.", ErrorCodes.enErrorCodes.INVALID_DATA));
 
             var orderAndItems = await _orderService.GetOrderAndItemsByIdAsync(orderId);
 
-            if (orderAndItems.Order == null)
-                throw new BusinessException($"Order with this ID {orderId} was not found", 80052, ActionResultEnum.ActionResult.NotFound);
+            if (orderAndItems.Value.Order == null)
+                return Result<bool>.Failure(new Error($"Order with this ID {orderId} was not found", ErrorCodes.enErrorCodes.NOT_FOUND));
 
-            if (!_CheckOrderStatus(orderAndItems.Order))
-                throw new BusinessException("Can't make changes to the order because it's cancelled , ready or completed ", 80006, ActionResultEnum.ActionResult.Conflict);
+            if (!_CheckOrderStatus(orderAndItems.Value.Order))
+                return Result<bool>.Failure(new Error("Can't make changes to the order because it's cancelled , ready or completed ", ErrorCodes.enErrorCodes.BUSINESS_RULE_VIOLATION));
 
-            bool itemExist = orderAndItems.Items != null && orderAndItems.Items.Select(s => s.ItemID == ItemId).Any();
+            bool itemExist = orderAndItems.Value.Items != null && orderAndItems.Value.Items.Select(s => s.ItemID == ItemId).Any();
             if (!itemExist)
-                throw new BusinessException("Item not found.", 80001, ActionResultEnum.ActionResult.NotFound);
+                return Result<bool>.Failure(new Error("Item not found.", ErrorCodes.enErrorCodes.NOT_FOUND));
 
             bool deleted = await _itemRepo.DeleteItemsAsync(ItemId);
-            if (!deleted)
-                throw new BusinessException("Failed to delete item.", 80002, ActionResultEnum.ActionResult.DBError);
 
-            return true;
+            if (!deleted)
+                return Result<bool>.Failure(new Error("Failed to delete item.", ErrorCodes.enErrorCodes.DB_ERROR));
+
+            return Result<bool>.Success(deleted);
         }
 
         private bool _CheckOrderStatus(OrderResponse order)

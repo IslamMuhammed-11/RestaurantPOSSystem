@@ -5,16 +5,22 @@ using System.Text;
 using System.Threading.Tasks;
 using Contracts.Enums;
 using Contracts.DTOs.CategoryDTOs;
+using Contracts.Result;
 
 namespace BusinessLogicLayer.Interfaces
 {
     public interface ICategoryService
     {
-        Task<int?> AddNewCategoryAsync(CreateCategoryRequest category);
-        Task<bool> UpdateCategoryAsync(int ID, UpdateCategoryRequest category);
-        Task<CategoryResponse?> GetCategoryByIDAsync(int id);
-        Task<List<CategoryResponse>> GetAllCategoriesAsync();
-        Task<bool> DeleteCategoryByIDAsync(int id);
-        Task<bool> DoesCategoryExistsAsync(int id);
+        Task<Result<CategoryResponse>> AddNewCategoryAsync(CreateCategoryRequest category);
+
+        Task<Result<CategoryResponse>> UpdateCategoryAsync(int ID, UpdateCategoryRequest category);
+
+        Task<Result<CategoryResponse>> GetCategoryByIDAsync(int id);
+
+        Task<Result<List<CategoryResponse>>> GetAllCategoriesAsync();
+
+        Task<Result<bool>> DeleteCategoryByIDAsync(int id);
+
+        Task<Result<bool>> DoesCategoryExistsAsync(int id);
     }
 }

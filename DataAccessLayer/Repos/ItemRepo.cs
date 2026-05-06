@@ -1,14 +1,9 @@
-﻿using DataAccessLayer.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
-using System.Data;
-using Microsoft.Extensions.Configuration;
+﻿using Contracts.Exceptions;
 using DataAccessLayer.Entites;
-using Contracts.Exceptions;
+using DataAccessLayer.Interfaces;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using System.Data;
 
 namespace DataAccessLayer.Repos
 {
@@ -30,28 +25,21 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@ItemID", Id);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                return new ItemsEntity
                 {
-                    return new ItemsEntity
-                    {
-                        ItemID = (int)reader["ItemID"],
-                        ProductID = (int)reader["ProductID"],
-                        ProductName = (string)reader["ProductName"],
-                        OrderID = (int)reader["OrderID"],
-                        Quantity = reader["Quantity"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Quantity"]),
-                        Price = Convert.ToDecimal(reader["UnitPrice"])
-                    };
-                }
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                    ItemID = (int)reader["ItemID"],
+                    ProductID = (int)reader["ProductID"],
+                    ProductName = (string)reader["ProductName"],
+                    OrderID = (int)reader["OrderID"],
+                    Quantity = reader["Quantity"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Quantity"]),
+                    Price = Convert.ToDecimal(reader["UnitPrice"])
+                };
             }
 
             return null!;
@@ -67,28 +55,21 @@ namespace DataAccessLayer.Repos
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("@OrderID", orderId);
 
-            try
+            await connection.OpenAsync();
+
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-
-                using SqlDataReader reader = await cmd.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
+                items.Add(new ItemsEntity
                 {
-                    items.Add( new ItemsEntity
-                    {
-                        ItemID = (int)reader["ItemID"],
-                        ProductID = (int)reader["ProductID"],
-                        ProductName = (string)reader["ProductName"],
-                        OrderID = (int)reader["OrderID"],
-                        Quantity = reader["Quantity"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Quantity"]),
-                        Price = Convert.ToDecimal(reader["UnitPrice"])
-                    });
-                }
-            }
-            catch (SqlException ex)
-            {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                    ItemID = (int)reader["ItemID"],
+                    ProductID = (int)reader["ProductID"],
+                    ProductName = (string)reader["ProductName"],
+                    OrderID = (int)reader["OrderID"],
+                    Quantity = reader["Quantity"] == DBNull.Value ? (short)0 : Convert.ToInt16(reader["Quantity"]),
+                    Price = Convert.ToDecimal(reader["UnitPrice"])
+                });
             }
 
             return items;
@@ -107,7 +88,7 @@ namespace DataAccessLayer.Repos
             cmd.Parameters.AddWithValue("@ProductID", item.ProductID);
             cmd.Parameters.AddWithValue("@OrderID", item.OrderID);
             cmd.Parameters.AddWithValue("@Quantity", item.Quantity);
-           // cmd.Parameters.AddWithValue("@Price", item.Price);
+            // cmd.Parameters.AddWithValue("@Price", item.Price);
 
             SqlParameter param = new SqlParameter("@ItemID", SqlDbType.Int)
             {
@@ -123,7 +104,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             if (param.Value == DBNull.Value)
@@ -158,7 +144,12 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
@@ -166,9 +157,8 @@ namespace DataAccessLayer.Repos
 
         public async Task<bool> UpdateQuantityAsync(ItemsEntity item)
         {
-            if (item == null) 
+            if (item == null)
                 return false;
-
 
             int RowsAffected = 0;
             using SqlConnection connection = new SqlConnection(_ConnString);
@@ -189,11 +179,15 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
-
         }
 
         public async Task<bool> DeleteItemsAsync(int id)
@@ -215,15 +209,15 @@ namespace DataAccessLayer.Repos
             }
             catch (SqlException ex)
             {
-                throw new BusinessException(ex.Message, 99999, Contracts.Enums.ActionResultEnum.ActionResult.DBError);
+                throw ex.Number switch
+                {
+                    2627 or 2601 => new DuplicateRecordException(),
+                    547 => new InvalidReferenceTypeException(),
+                    _ => ex
+                };
             }
 
             return RowsAffected > 0;
         }
     }
 }
-
-
-
-    
-
