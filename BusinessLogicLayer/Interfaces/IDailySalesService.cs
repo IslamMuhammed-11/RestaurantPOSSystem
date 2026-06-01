@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 using Contracts.DTOs.ReportsDTOs.SalesReports;
 using Contracts.Queries.ReportsQueries;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 
 namespace BusinessLogicLayer.Interfaces
 {

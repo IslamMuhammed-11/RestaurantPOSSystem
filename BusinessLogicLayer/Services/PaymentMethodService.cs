@@ -6,7 +6,7 @@ using Contracts.Exceptions;
 using DataAccessLayer.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 
 namespace BusinessLogicLayer.Services
 {

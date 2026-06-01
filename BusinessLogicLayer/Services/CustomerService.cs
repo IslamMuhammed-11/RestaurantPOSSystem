@@ -1,7 +1,7 @@
 ﻿using BusinessLogicLayer.Interfaces;
 using Contracts.DTOs.CustomerDTOs;
 using Contracts.Enums;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 using DataAccessLayer.Interfaces;
 
 namespace BusinessLogicLayer.Services

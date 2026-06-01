@@ -2,7 +2,7 @@ using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Mapping;
 using Contracts.DTOs.ProductDTOs;
 using Contracts.Enums;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 using DataAccessLayer.Interfaces;
 using System.Data;
 

@@ -1,6 +1,6 @@
 ﻿using Contracts.DTOs.BaseResponse;
 using Contracts.Enums;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

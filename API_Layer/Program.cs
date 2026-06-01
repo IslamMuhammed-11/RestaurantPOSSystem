@@ -103,6 +103,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     });
 
 builder.Services.AddSingleton<IAuthorizationHandler, UserOwnerOrSuperOrAdminHandler>();
+
 builder.Services.AddAuthorization(options =>
      {
          options.AddPolicy("UserOwnerOrSuperOrAdmin", policy =>

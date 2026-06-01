@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Contracts.Enums;
 using Contracts.DTOs.TableDTOs;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 
 namespace BusinessLogicLayer.Interfaces
 {

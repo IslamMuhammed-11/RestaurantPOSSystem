@@ -1,7 +1,7 @@
 using Contracts.DTOs.PaymentMethodDTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 
 namespace BusinessLogicLayer.Interfaces
 {

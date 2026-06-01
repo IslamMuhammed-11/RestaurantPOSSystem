@@ -3,7 +3,7 @@ using BusinessLogicLayer.Mapping;
 using Contracts.DTOs.CategoryDTOs;
 using Contracts.Enums;
 using Contracts.Exceptions;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 using DataAccessLayer.Interfaces;
 using System;
 using System.Collections.Generic;

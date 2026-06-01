@@ -1,6 +1,6 @@
 ﻿using Contracts.DTOs.OrderItemsDTOs;
 using System.Threading.Tasks;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 
 namespace BusinessLogicLayer.Interfaces
 {

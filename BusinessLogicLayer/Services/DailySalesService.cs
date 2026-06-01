@@ -6,7 +6,7 @@ using Contracts.Enums;
 using Contracts.Exceptions;
 using Contracts.Queries.ReportsQueries;
 using DataAccessLayer.Interfaces;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 
 namespace BusinessLogicLayer.Services
 {

@@ -3,7 +3,7 @@ using BusinessLogicLayer.Interfaces;
 using BusinessLogicLayer.Mapping;
 using Contracts.DTOs.PaymentDTOs;
 using Contracts.Enums;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 using DataAccessLayer.Entites;
 using DataAccessLayer.Interfaces;
 using MediatR;

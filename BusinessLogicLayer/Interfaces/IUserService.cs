@@ -1,6 +1,6 @@
 ﻿using Contracts.DTOs.UserDTOs;
 using Contracts.Enums;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 
 namespace BusinessLogicLayer.Interfaces
 {

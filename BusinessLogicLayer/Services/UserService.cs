@@ -3,7 +3,7 @@ using BusinessLogicLayer.Mapping;
 using Contracts.DTOs.UserDTOs;
 using Contracts.Enums;
 using DataAccessLayer.Interfaces;
-using Contracts.Result;
+using Contracts.ErrorHandling;
 
 namespace BusinessLogicLayer.Services
 {
